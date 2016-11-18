@@ -1,15 +1,23 @@
 
 
+#集群名称
 cluster.name: elasticsearch-2.4-local
+#节点名称
 node.name: zhengxgs-7.238-local
+
+#是否可以选举为主节点，默认为true
 #node.master: false
+
+#是否作为数据节点，默认为true
 #node.data: false
 
 network.host: 0.0.0.0
 
+#索引缓存引用类型，soft，当内存不足时jvm可回收掉
 index.cache.field.type: soft
+#锁定内存
 bootstrap.memory_lock: true
-
+#索引刷新时间，默认1s
 index:refresh_interval: 8s
 
 index.number_of_shards: 2
