@@ -1,0 +1,12 @@
+[2016-11-17 10:04:07,360][INFO ][node                     ] [zhengxgs-7.238] version[2.4.1-SNAPSHOT], pid[7832], build[NA/NA]
+[2016-11-17 10:04:07,360][INFO ][node                     ] [zhengxgs-7.238] initializing ...
+[2016-11-17 10:04:09,361][INFO ][plugins                  ] [zhengxgs-7.238] modules [], plugins [bigdesk, head], sites [bigdesk, head]
+[2016-11-17 10:04:09,501][INFO ][env                      ] [zhengxgs-7.238] using [1] data paths, mounts [[(E:)]], net usable_space [128.5gb], net total_space [182.7gb], spins? [unknown], types [NTFS]
+[2016-11-17 10:04:09,501][INFO ][env                      ] [zhengxgs-7.238] heap size [2.6gb], compressed ordinary object pointers [true]
+[2016-11-17 10:04:42,548][INFO ][node                     ] [zhengxgs-7.238] initialized
+[2016-11-17 10:04:42,548][INFO ][node                     ] [zhengxgs-7.238] starting ...
+[2016-11-17 10:04:42,876][INFO ][transport                ] [zhengxgs-7.238] publish_address {172.16.7.238:9300}, bound_addresses {[::]:9300}
+[2016-11-17 10:04:42,970][INFO ][discovery                ] [zhengxgs-7.238] elasticsearch-2.4/uMVBy61eSD-LRiFS0maCsg
+[2016-11-17 10:04:53,627][INFO ][cluster.service          ] [zhengxgs-7.238] detected_master {zhengxgs-4.33}{HTj6BHMXTNeSqU-zgb1b1Q}{172.16.4.33}{172.16.4.33:9300}, added {{zhengxgs-2.248}{RYZTMyjXTySjyBQ0QTnAMw}{172.16.2.248}{172.16.2.248:9300},{zhengxgs-4.33}{HTj6BHMXTNeSqU-zgb1b1Q}{172.16.4.33}{172.16.4.33:9300},}, reason: zen-disco-receive(from master [{zhengxgs-4.33}{HTj6BHMXTNeSqU-zgb1b1Q}{172.16.4.33}{172.16.4.33:9300}])
+[2016-11-17 10:04:54,283][INFO ][http                     ] [zhengxgs-7.238] publish_address {172.16.7.238:9200}, bound_addresses {[::]:9200}
+[2016-11-17 10:04:54,283][INFO ][node                     ] [zhengxgs-7.238] started
