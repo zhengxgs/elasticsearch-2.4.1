@@ -51,6 +51,13 @@ public class MessageChannelHandler extends SimpleChannelUpstreamHandler {
     protected final NettyTransport transport;
     protected final String profileName;
 
+
+    /**
+     * TODO Client 和 Server公用，通过profileName区分是client的Handler还是Server, client= .client
+     * @param transport
+     * @param logger
+     * @param profileName
+     */
     public MessageChannelHandler(NettyTransport transport, ESLogger logger, String profileName) {
         this.threadPool = transport.threadPool();
         this.transportServiceAdapter = transport.transportServiceAdapter();
@@ -65,9 +72,17 @@ public class MessageChannelHandler extends SimpleChannelUpstreamHandler {
         super.writeComplete(ctx, e);
     }
 
+    /**
+     * TODO 消息处理
+     * @param ctx
+     * @param e
+     * @throws Exception
+     */
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+        // TODO 无效代码
         Transports.assertTransportThread();
+
         Object m = e.getMessage();
         if (!(m instanceof ChannelBuffer)) {
             ctx.sendUpstream(e);
@@ -91,6 +106,7 @@ public class MessageChannelHandler extends SimpleChannelUpstreamHandler {
             Version version = Version.fromId(streamIn.readInt());
 
             if (TransportStatus.isCompress(status) && hasMessageBytesToRead && buffer.readable()) {
+                // TODO 压缩处理
                 Compressor compressor;
                 try {
                     compressor = CompressorFactory.compressor(buffer);
@@ -112,7 +128,9 @@ public class MessageChannelHandler extends SimpleChannelUpstreamHandler {
             }
             streamIn.setVersion(version);
 
+            // TODO 判断是否是request或response请求
             if (TransportStatus.isRequest(status)) {
+                // 真正处理request的地方
                 handleRequest(ctx.getChannel(), marker, streamIn, requestId, size, version);
             } else {
                 TransportResponseHandler<?> handler = transportServiceAdapter.onResponseReceived(requestId);
@@ -202,10 +220,12 @@ public class MessageChannelHandler extends SimpleChannelUpstreamHandler {
     protected String handleRequest(Channel channel, Marker marker, StreamInput buffer, long requestId, int messageLengthBytes,
                                    Version version) throws IOException {
         buffer = new NamedWriteableAwareStreamInput(buffer, transport.namedWriteableRegistry);
+        // TODO 从buffer中解析action，用于从requestHandler获取对应的处理类
         final String action = buffer.readString();
         transportServiceAdapter.onRequestReceived(requestId, action);
         NettyTransportChannel transportChannel = null;
         try {
+            // TODO get requesthandler
             final RequestHandlerRegistry reg = transportServiceAdapter.getRequestHandler(action);
             if (reg == null) {
                 throw new ActionNotFoundTransportException(action);
@@ -316,6 +336,7 @@ public class MessageChannelHandler extends SimpleChannelUpstreamHandler {
      * Internal helper class to store characteristic offsets of a buffer during processing
      */
     protected static final class Marker {
+
         private final ChannelBuffer buffer;
         private final int remainingMessageSize;
         private final int expectedReaderIndex;

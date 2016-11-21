@@ -127,7 +127,7 @@ public class TransportClient extends AbstractClient {
             this.settings = pluginsService.updatedSettings();
 
             Version version = Version.CURRENT;
-
+            // 初始化线程池
             final ThreadPool threadPool = new ThreadPool(settings);
             NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry();
 
@@ -158,10 +158,19 @@ public class TransportClient extends AbstractClient {
                 pluginsService.processModules(modules);
 
                 Injector injector = modules.createInjector();
+                // TODO 调用NettyTransport的doStart方法初始化Client和Server服务
                 final TransportService transportService = injector.getInstance(TransportService.class);
                 transportService.start();
                 transportService.acceptIncomingRequests();
 
+                // TODO TransportClient构造方法中调用 TransportClientNodesService
+                // 然后根据设置的参数进行一些其他工作，如是否自动发现集群内其他节点，发现的频率以及timeout就是一下设置的参数了
+                // client.transport.nodes_sampler_interval
+                // client.transport.ping_timeout
+                // client.transport.ignore_cluster_name
+                // client.transport.sniff
+
+                // client 的 addTransportAddress方法也是由TransportClientNodesService负责
                 TransportClient transportClient = new TransportClient(injector);
                 success = true;
                 return transportClient;
@@ -183,6 +192,7 @@ public class TransportClient extends AbstractClient {
     private TransportClient(Injector injector) {
         super(injector.getInstance(Settings.class), injector.getInstance(ThreadPool.class), injector.getInstance(Headers.class));
         this.injector = injector;
+        // TODO 注入的时候调用TransportClientNodesService的构造方法
         nodesService = injector.getInstance(TransportClientNodesService.class);
         proxy = injector.getInstance(TransportProxyClient.class);
     }

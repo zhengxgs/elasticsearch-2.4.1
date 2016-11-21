@@ -258,7 +258,7 @@ public class NodesFaultDetection extends FaultDetection {
             );
         }
     }
-
+    // TODO pingHandler
     class PingRequestHandler extends TransportRequestHandler<PingRequest> {
         @Override
         public void messageReceived(PingRequest request, TransportChannel channel) throws Exception {
@@ -281,6 +281,7 @@ public class NodesFaultDetection extends FaultDetection {
     }
 
 
+    // TODO PingRequest对象  action = internal:discovery/zen/fd/ping
     public static class PingRequest extends TransportRequest {
 
         // the (assumed) node id we are pinging
@@ -337,6 +338,7 @@ public class NodesFaultDetection extends FaultDetection {
         }
     }
 
+    // TODO PingResponse
     private static class PingResponse extends TransportResponse {
 
         private PingResponse() {

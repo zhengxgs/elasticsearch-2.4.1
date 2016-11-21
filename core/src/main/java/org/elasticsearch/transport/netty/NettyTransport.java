@@ -311,6 +311,7 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
 
     /**
      * TODO netty start
+     * netty启动的时候会启一个client，和根据配置是否启一个server。
      */
     @Override
     protected void doStart() {
@@ -394,6 +395,7 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
                     new NioWorkerPool(Executors.newCachedThreadPool(daemonThreadFactory(settings, TRANSPORT_CLIENT_WORKER_THREAD_NAME_PREFIX)), workerCount),
                     new HashedWheelTimer(daemonThreadFactory(settings, "transport_client_timer"))));
         }
+        // 设置PipelineFactory
         clientBootstrap.setPipelineFactory(configureClientChannelPipelineFactory());
         clientBootstrap.setOption("connectTimeoutMillis", connectTimeout.millis());
 
@@ -870,8 +872,9 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
     @Override
     public void sendRequest(final DiscoveryNode node, final long requestId, final String action, final TransportRequest request, TransportRequestOptions options) throws IOException, TransportException {
 
+        // TODO 获取连接
         Channel targetChannel = nodeChannel(node, options);
-
+        // 是否压缩
         if (compress) {
             options = TransportRequestOptions.builder(options).withCompress(true).build();
         }
@@ -895,7 +898,7 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
             // note, this is the only place we need to do this, since from here on, we use the serialized version
             // as the version to use also when the node receiving this request will send the response with
             Version version = Version.smallest(this.version, node.version());
-
+            // TODO 写入版本和action
             stream.setVersion(version);
             stream.writeString(action);
 
@@ -920,6 +923,7 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
                 buffer = bytes.toChannelBuffer();
             }
             NettyHeader.writeHeader(buffer, requestId, status, version);
+            // write
             ChannelFuture future = targetChannel.write(buffer);
             ReleaseChannelFutureListener listener = new ReleaseChannelFutureListener(bytes);
             future.addListener(listener);
@@ -961,6 +965,7 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
         if (node == null) {
             throw new ConnectTransportException(null, "can't connect to a null node");
         }
+        // TODO 保证初始化通道的时候只有一个
         globalLock.readLock().lock();
         try {
             try (Releasable ignored = connectionLock.acquire(node.id())) {
@@ -1015,6 +1020,11 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
         return new NodeChannels(channels, channels, channels, channels, channels);
     }
 
+    /**
+     * TODO 初始化Node Channels数量
+     * @param nodeChannels
+     * @param node
+     */
     protected void connectToChannels(NodeChannels nodeChannels, DiscoveryNode node) {
         ChannelFuture[] connectRecovery = new ChannelFuture[nodeChannels.recovery.length];
         ChannelFuture[] connectBulk = new ChannelFuture[nodeChannels.bulk.length];
@@ -1084,6 +1094,7 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
                 nodeChannels.ping[i].getCloseFuture().addListener(new ChannelCloseListener(node));
             }
 
+            // TODO 判断recorvery通道是否为0，如果是0，就使用bulk通道，如果bulk也为0，就使用reg通道，bulk也是一样的
             if (nodeChannels.recovery.length == 0) {
                 if (nodeChannels.bulk.length > 0) {
                     nodeChannels.recovery = nodeChannels.bulk;
@@ -1186,6 +1197,10 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
         return nodeChannels.channel(options.type());
     }
 
+    /**
+     * Client Pipeline Factory
+     * @return
+     */
     public ChannelPipelineFactory configureClientChannelPipelineFactory() {
         return new ClientChannelPipelineFactory(this);
     }
@@ -1213,11 +1228,18 @@ public class NettyTransport extends AbstractLifecycleComponent<Transport> implem
             }
             channelPipeline.addLast("size", sizeHeader);
             // using a dot as a prefix means, this cannot come from any settings parsed
+            // TODO 设置 MessageHandler
             channelPipeline.addLast("dispatcher", new MessageChannelHandler(nettyTransport, nettyTransport.logger, ".client"));
             return channelPipeline;
         }
     }
 
+    /**
+     * Server Pipeline Factory
+     * @param name
+     * @param settings
+     * @return
+     */
     public ChannelPipelineFactory configureServerChannelPipelineFactory(String name, Settings settings) {
         return new ServerChannelPipelineFactory(this, name, settings);
     }

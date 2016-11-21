@@ -69,6 +69,7 @@ public class TransportService extends AbstractLifecycleComponent<TransportServic
     protected final ThreadPool threadPool;
     protected final TaskManager taskManager;
 
+    // TODO 所有requestHandlers
     volatile ImmutableMap<String, RequestHandlerRegistry> requestHandlers = ImmutableMap.of();
     final Object requestHandlerMutex = new Object();
 
@@ -179,6 +180,7 @@ public class TransportService extends AbstractLifecycleComponent<TransportServic
         adapter.rxMetric.clear();
         adapter.txMetric.clear();
         transport.transportServiceAdapter(adapter);
+        // TODO 调用NNettyTransport的doStart方法初始化Client和Server服务
         transport.start();
         if (transport.boundAddress() != null && logger.isInfoEnabled()) {
             logger.info("{}", transport.boundAddress());
@@ -249,6 +251,11 @@ public class TransportService extends AbstractLifecycleComponent<TransportServic
         return transport.getLocalAddresses();
     }
 
+    /**
+     * 判断节点是否 是Connected状态
+     * @param node
+     * @return
+     */
     public boolean nodeConnected(DiscoveryNode node) {
         return node.equals(localNode) || transport.nodeConnected(node);
     }

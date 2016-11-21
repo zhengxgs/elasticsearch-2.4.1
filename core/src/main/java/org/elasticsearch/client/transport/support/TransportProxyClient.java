@@ -41,6 +41,7 @@ public class TransportProxyClient {
     @Inject
     public TransportProxyClient(Settings settings, TransportService transportService, TransportClientNodesService nodesService, Map<String, GenericAction> actions) {
         this.nodesService = nodesService;
+        // TODO 初始化对象时，构建一个所有的action的TransportActionNodeProxy 的 map
         MapBuilder<Action, TransportActionNodeProxy> actionsBuilder = new MapBuilder<>();
         for (GenericAction action : actions.values()) {
             if (action instanceof Action) {
@@ -50,7 +51,9 @@ public class TransportProxyClient {
         this.proxies = actionsBuilder.immutableMap();
     }
 
+    // TODO 调用路径 TransportClient -> TransportProxyClient -> TransportClientNodesService -> 通过NodeListenerCallback 调用 TransportActionNodeProxy的execute方法执行sendRequest方法
     public <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(final Action<Request, Response, RequestBuilder> action, final Request request, ActionListener<Response> listener) {
+        // TODO 获取一个action代理对象调用execute方法进行发送请求处理
         final TransportActionNodeProxy<Request, Response> proxy = proxies.get(action);
         nodesService.execute(new TransportClientNodesService.NodeListenerCallback<Response>() {
             @Override

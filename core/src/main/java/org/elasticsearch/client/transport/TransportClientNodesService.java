@@ -64,7 +64,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 
 /**
- *
+ * TODO 负责 客户端 和 服务端 的连接，
+ * 这个类维护这三个列表：
+ * 1. client初始化时addTransportAddress配置的node
+ * 2. 和服务端建立的node
+ * 3. 被过滤掉的node，如集群名不匹配
  */
 public class TransportClientNodesService extends AbstractComponent {
 
@@ -82,12 +86,14 @@ public class TransportClientNodesService extends AbstractComponent {
 
     private final Headers headers;
 
+    // 初始化客户端的时候，transportClient.addTransportAddress添加的节点
     // nodes that are added to be discovered
     private volatile List<DiscoveryNode> listedNodes = Collections.emptyList();
 
     private final Object mutex = new Object();
-
+    // 和服务端建立的node
     private volatile List<DiscoveryNode> nodes = Collections.emptyList();
+    // 集群名不匹配的节点
     private volatile List<DiscoveryNode> filteredNodes = Collections.emptyList();
 
     private final AtomicInteger tempNodeIdGenerator = new AtomicInteger();
@@ -202,11 +208,20 @@ public class TransportClientNodesService extends AbstractComponent {
         return this;
     }
 
+    /**
+     * 发送请求
+     * @param callback
+     * @param listener
+     * @param <Response>
+     */
     public <Response> void execute(NodeListenerCallback<Response> callback, ActionListener<Response> listener) {
         List<DiscoveryNode> nodes = this.nodes;
+        // TODO 确定有可用的节点
         ensureNodesAreAvailable(nodes);
+        // 获取节点使用次数序列，随机index
         int index = getNodeNumber();
         RetryListener<Response> retryListener = new RetryListener<>(callback, listener, nodes, index);
+        // 负载均衡算法，index % size = 发送节点
         DiscoveryNode node = nodes.get((index) % nodes.size());
         try {
             callback.doWithNode(node, retryListener);
@@ -276,6 +291,7 @@ public class TransportClientNodesService extends AbstractComponent {
     }
 
     private int getNodeNumber() {
+        // ++ and get
         int index = randomNodeGenerator.incrementAndGet();
         if (index < 0) {
             index = 0;
@@ -340,6 +356,9 @@ public class TransportClientNodesService extends AbstractComponent {
         }
     }
 
+    /**
+     * TODO 不自动发送集群其他节点
+     */
     class SimpleNodeSampler extends NodeSampler {
 
         @Override
@@ -351,6 +370,7 @@ public class TransportClientNodesService extends AbstractComponent {
                     try {
                         // its a listed node, light connect to it...
                         logger.trace("connecting to listed node (light) [{}]", listedNode);
+                        // TODO 只创建一个ping连接 (light connect)
                         transportService.connectToNodeLight(listedNode);
                     } catch (Throwable e) {
                         logger.debug("failed to connect to node [{}], removed from nodes list", e, listedNode);
@@ -389,13 +409,15 @@ public class TransportClientNodesService extends AbstractComponent {
             filteredNodes = Collections.unmodifiableList(new ArrayList<>(newFilteredNodes));
         }
     }
-
+    // TODO 自动发现集群节点类
     class SniffNodesSampler extends NodeSampler {
 
         @Override
         protected void doSample() {
             // the nodes we are going to ping include the core listed nodes that were added
             // and the last round of discovered nodes
+
+            // TODO samaple会去ping 上一次发现的节点（listedNodes集合）和已连接的（nodes集合）节点
             Set<DiscoveryNode> nodesToPing = Sets.newHashSet();
             for (DiscoveryNode node : listedNodes) {
                 nodesToPing.add(node);
@@ -407,12 +429,17 @@ public class TransportClientNodesService extends AbstractComponent {
             final CountDownLatch latch = new CountDownLatch(nodesToPing.size());
             final ConcurrentMap<DiscoveryNode, ClusterStateResponse> clusterStateResponses = ConcurrentCollections.newConcurrentMap();
             for (final DiscoveryNode listedNode : nodesToPing) {
+
+                // TODO 线程池名：management
                 threadPool.executor(ThreadPool.Names.MANAGEMENT).execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
                             if (!transportService.nodeConnected(listedNode)) {
                                 try {
+                                    // TODO 如果节点还没有连接，判断当前节点是否在nodes集合中，如果在集群中说明断开连接，重新连接
+                                    // fully connect 意思：会创建5种连接，bulk，reg，search，index这些连接
+                                    // light connect 意思：只会创建ping连接
 
                                     // if its one of the actual nodes we will talk to, not to listed nodes, fully connect
                                     if (nodes.contains(listedNode)) {
@@ -429,6 +456,7 @@ public class TransportClientNodesService extends AbstractComponent {
                                     return;
                                 }
                             }
+                            // 发送集群状态请求
                             transportService.sendRequest(listedNode, ClusterStateAction.NAME,
                                     headers.applyTo(Requests.clusterStateRequest().clear().nodes(true).local(true)),
                                     TransportRequestOptions.builder().withType(TransportRequestOptions.Type.STATE).withTimeout(pingTimeout).build(),
@@ -446,6 +474,7 @@ public class TransportClientNodesService extends AbstractComponent {
 
                                         @Override
                                         public void handleResponse(ClusterStateResponse response) {
+                                            // TODO 接受listedNode回复的集群状态
                                             clusterStateResponses.put(listedNode, response);
                                             latch.countDown();
                                         }
@@ -480,6 +509,7 @@ public class TransportClientNodesService extends AbstractComponent {
                     newFilteredNodes.add(entry.getKey());
                     continue;
                 }
+                // TODO 获取其他节点上集群里的其他数据节点
                 for (ObjectCursor<DiscoveryNode> cursor : entry.getValue().getState().nodes().dataNodes().values()) {
                     newNodes.add(cursor.value);
                 }

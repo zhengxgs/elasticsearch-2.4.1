@@ -42,6 +42,12 @@ public class TransportActionNodeProxy<Request extends ActionRequest, Response ex
         this.transportOptions = action.transportOptions(settings);
     }
 
+    /**
+     * 执行方法，将调用TransportService进行sendRequest请求
+     * @param node
+     * @param request
+     * @param listener
+     */
     public void execute(final DiscoveryNode node, final Request request, final ActionListener<Response> listener) {
         ActionRequestValidationException validationException = request.validate();
         if (validationException != null) {

@@ -66,7 +66,7 @@ public class RequestHandlerRegistry<Request extends TransportRequest> {
             throw new IllegalStateException("failed to instantiate request ", e);
         }
     }
-
+    // TODO 处理逻辑，action = internal:discovery/zen/fd/ping，注册到taskmanager中
     public void processMessageReceived(Request request, TransportChannel channel) throws Exception {
         final Task task = taskManager.register(channel.getChannelType(), action, request);
         if (task == null) {
@@ -153,6 +153,7 @@ public class RequestHandlerRegistry<Request extends TransportRequest> {
         }
 
         private void endTask() {
+            // TODO 发送sendResponse时，把注册时的task从taskManager移除
             taskManager.unregister(task);
         }
     }

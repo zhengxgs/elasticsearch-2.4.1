@@ -62,6 +62,8 @@ final class Bootstrap {
 
     /** creates a new instance */
     Bootstrap() {
+
+        // TODO 启用一个线程，no daemon thread，防止main方法结束，非kill -9时，触发hook，释放CountDownLatch，结束main方法停止服务
         keepAliveThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -218,6 +220,9 @@ final class Bootstrap {
         return InternalSettingsPreparer.prepareEnvironment(EMPTY_SETTINGS, terminal);
     }
 
+    /**
+     * TODO 调用node.start开始运行
+     */
     private void start() {
         node.start();
         keepAliveThread.start();

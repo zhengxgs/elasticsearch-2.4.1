@@ -56,10 +56,19 @@ import static org.elasticsearch.common.unit.SizeValue.parseSizeValue;
 import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 
 /**
- *
+ * TODO es线程池
  */
 public class ThreadPool extends AbstractComponent {
 
+    /**
+     * same 处理ping请求
+     * get 处理get请求
+     * index 处理索引请求
+     * search 处理查询请求
+     * bulk 处理批量请求
+     * flush 处理刷新请求 （可能有误）
+     * refresh 处理索引段合并请求（可能有误）
+     */
     public static class Names {
         public static final String SAME = "same";
         public static final String GENERIC = "generic";
@@ -118,6 +127,7 @@ public class ThreadPool extends AbstractComponent {
     public static Map<String, ThreadPoolType> THREAD_POOL_TYPES;
 
     static {
+        // TODO 默认线程池类型
         HashMap<String, ThreadPoolType> map = new HashMap<>();
         map.put(Names.SAME, ThreadPoolType.DIRECT);
         map.put(Names.GENERIC, ThreadPoolType.CACHED);
@@ -206,6 +216,7 @@ public class ThreadPool extends AbstractComponent {
         int halfProcMaxAt5 = Math.min(((availableProcessors + 1) / 2), 5);
         int halfProcMaxAt10 = Math.min(((availableProcessors + 1) / 2), 10);
 
+        // TODO  默认的线程池设置
         Map<String, Settings> defaultExecutorTypeSettings = new HashMap<>();
         add(defaultExecutorTypeSettings, new ExecutorSettingsBuilder(Names.GENERIC).keepAlive("30s"));
         add(defaultExecutorTypeSettings, new ExecutorSettingsBuilder(Names.INDEX).size(availableProcessors).queueSize(200));

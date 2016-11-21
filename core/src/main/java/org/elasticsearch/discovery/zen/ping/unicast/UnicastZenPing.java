@@ -173,6 +173,7 @@ public class UnicastZenPing extends AbstractLifecycleComponent<ZenPing> implemen
         }
         this.configuredTargetNodes = configuredTargetNodes.toArray(new DiscoveryNode[configuredTargetNodes.size()]);
 
+        // TODO 在单播的构造方法中注册 internal:discovery/zen/unicast 的 RequestHandler
         transportService.registerRequestHandler(ACTION_NAME, UnicastPingRequest.class, ThreadPool.Names.SAME, new UnicastPingRequestHandler());
 
         ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(settings, "[unicast_connect]");
