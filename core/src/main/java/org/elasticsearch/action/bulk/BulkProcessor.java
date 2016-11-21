@@ -78,7 +78,9 @@ public class BulkProcessor implements Closeable {
 
         private String name;
         private int concurrentRequests = 1;
+        // TODO 默认提交请求阈值，1000个request
         private int bulkActions = 1000;
+        // TODO 默认提交请求阈值，5MB
         private ByteSizeValue bulkSize = new ByteSizeValue(5, ByteSizeUnit.MB);
         private TimeValue flushInterval = null;
         private BackoffPolicy backoffPolicy = BackoffPolicy.exponentialBackoff();
@@ -196,6 +198,7 @@ public class BulkProcessor implements Closeable {
             this.scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1, EsExecutors.daemonThreadFactory(client.settings(), (name != null ? "[" + name + "]" : "") + "bulk_processor"));
             this.scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
             this.scheduler.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+            // TODO 如果flushInterval（刷新间隔）不等于空，就起一个scheduler进行提交，去执行提交动作
             this.scheduledFuture = this.scheduler.scheduleWithFixedDelay(new Flush(), flushInterval.millis(), flushInterval.millis(), TimeUnit.MILLISECONDS);
         } else {
             this.scheduler = null;
@@ -291,6 +294,7 @@ public class BulkProcessor implements Closeable {
 
     public synchronized BulkProcessor add(BytesReference data, @Nullable String defaultIndex, @Nullable String defaultType, @Nullable Object payload) throws Exception {
         bulkRequest.add(data, defaultIndex, defaultType, null, null, payload, true);
+        // TODO 每次add都会判断是否需要发送请求
         executeIfNeeded();
         return this;
     }
@@ -313,9 +317,13 @@ public class BulkProcessor implements Closeable {
     }
 
     private boolean isOverTheLimit() {
+        // TODO 判断 bulkActions 或 bulkSize 任意一个满足就发送request请求，因为是批量，批量，批量
+
+        // TODO 1000个request请求
         if (bulkActions != -1 && bulkRequest.numberOfActions() >= bulkActions) {
             return true;
         }
+        // TODO 或者5MB大小
         if (bulkSize != -1 && bulkRequest.estimatedSizeInBytes() >= bulkSize) {
             return true;
         }
