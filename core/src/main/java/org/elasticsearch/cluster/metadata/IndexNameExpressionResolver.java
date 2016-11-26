@@ -113,7 +113,14 @@ public class IndexNameExpressionResolver extends AbstractComponent {
         return concreteIndices(context, indexExpressions);
     }
 
+    /**
+     * TODO 将提供的索引表达式转为具体的索引
+     * @param context
+     * @param indexExpressions
+     * @return
+     */
     String[] concreteIndices(Context context, String... indexExpressions) {
+        // TODO 解析index的时候，判断有没有index，没有则映射为 _all
         if (indexExpressions == null || indexExpressions.length == 0) {
             indexExpressions = new String[]{MetaData.ALL};
         }

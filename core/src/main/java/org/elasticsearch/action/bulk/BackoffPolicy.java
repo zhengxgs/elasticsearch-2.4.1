@@ -73,6 +73,7 @@ public abstract class BackoffPolicy implements Iterable<TimeValue> {
      * iterator created from it should only be used by a single thread.
      */
     public static BackoffPolicy exponentialBackoff() {
+        // TODO 默认50ms超时，8次重试
         return exponentialBackoff(TimeValue.timeValueMillis(50), 8);
     }
 

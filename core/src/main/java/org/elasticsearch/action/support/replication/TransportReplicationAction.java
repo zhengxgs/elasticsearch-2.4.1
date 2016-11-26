@@ -118,6 +118,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
 
         this.transportOptions = transportOptions();
 
+        // TODO 写一致性，通过action.write_consistency修改，默认quorum
         this.defaultWriteConsistencyLevel = WriteConsistencyLevel.fromString(settings.get("action.write_consistency", "quorum"));
     }
 
@@ -312,10 +313,12 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
         }
     }
 
+    // TODO 副本处理
     private final class AsyncReplicaAction extends AbstractRunnable {
         private final ReplicaRequest request;
         private final TransportChannel channel;
         /**
+         * 任务在有副本分片的节点上
          * The task on the node with the replica shard.
          */
         private final ReplicationTask task;
@@ -420,6 +423,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
     }
 
     /**
+     * TODO 负责主分片路由，以及失败重试
      * Responsible for routing and retrying failed operations on the primary.
      * The actual primary operation is done in {@link PrimaryPhase} on the
      * node with primary copy.
@@ -450,13 +454,16 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
 
         @Override
         protected void doRun() {
+            // TODO 设置task达到阶段
             setPhase(task, "routing");
+            // TODO 获取集群状态，判断集群是否blocks状态，如果是就进行retry
             final ClusterState state = observer.observedState();
             ClusterBlockException blockException = state.blocks().globalBlockedException(globalBlockLevel());
             if (blockException != null) {
                 handleBlockException(blockException);
                 return;
             }
+            // TODO 判断索引是否blocks状态，是的话也进行重试
             final String concreteIndex = resolveIndex() ? indexNameExpressionResolver.concreteSingleIndex(state, request) : request.index();
             blockException = state.blocks().indexBlockedException(indexBlockLevel(), concreteIndex);
             if (blockException != null) {
@@ -558,6 +565,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
                 finishAsFailed(failure);
                 return;
             }
+            // TODO 标记task阶段为重试阶段
             setPhase(task, "waiting_for_retry");
             observer.waitForNextChange(new ClusterStateObserver.Listener() {
                 @Override
@@ -616,6 +624,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
     }
 
     /**
+     * TODO 负责在本地执行主分片操作，成功后委托副本操作（ReplicationPhase类处理）
      * Responsible for performing primary operation locally and delegating to replication action once successful
      * <p>
      * Note that as soon as we move to replication action, state responsibility is transferred to {@link ReplicationPhase}.
@@ -646,23 +655,26 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
             // request shardID was set in ReroutePhase
             assert request.shardId() != null : "request shardID must be set prior to primary phase";
             final ShardId shardId = request.shardId();
+            // TODO 检查一致性，返回不等NULL
             final String writeConsistencyFailure = checkWriteConsistency(shardId);
             if (writeConsistencyFailure != null) {
+                // 标记task为fail，然后发送response，根据注释描述，会在适当时候进行重试
                 finishBecauseUnavailable(shardId, writeConsistencyFailure);
                 return;
             }
             final ReplicationPhase replicationPhase;
             try {
                 indexShardReference = getIndexShardOperationsCounter(shardId);
+                //  TODO 调用lucene写入doc，tranlogs，刷新
                 Tuple<Response, ReplicaRequest> primaryResponse = shardOperationOnPrimary(state.metaData(), request);
                 if (logger.isTraceEnabled()) {
                     logger.trace("action [{}] completed on shard [{}] for request [{}] with cluster state version [{}]", transportPrimaryAction, shardId, request, state.version());
                 }
-                replicationPhase = new ReplicationPhase(task, primaryResponse.v2(), primaryResponse.v1(), shardId, channel,
-                    indexShardReference);
+                replicationPhase = new ReplicationPhase(task, primaryResponse.v2(), primaryResponse.v1(), shardId, channel, indexShardReference);
             } catch (Throwable e) {
+                // 失败时设置可以在同一个shard上重复
                 request.setCanHaveDuplicates();
-                if (ExceptionsHelper.status(e) == RestStatus.CONFLICT) {
+                if (ExceptionsHelper.status(e) == RestStatus.CONFLICT) { // 冲突
                     if (logger.isTraceEnabled()) {
                         logger.trace("failed to execute [{}] on [{}]", e, request, shardId);
                     }
@@ -671,9 +683,11 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
                         logger.debug("failed to execute [{}] on [{}]", e, request, shardId);
                     }
                 }
+                // 标记task为fail，然后发送response，根据注释描述，会在适当时候进行重试
                 finishAsFailed(e);
                 return;
             }
+            // TODO 封装ReplicationPhase继续处理副本
             finishAndMoveToReplication(replicationPhase);
         }
 
@@ -698,20 +712,27 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
             if (indexRoutingTable != null) {
                 IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.getId());
                 if (shardRoutingTable != null) {
+                    // TODO 获取 active size
                     sizeActive = shardRoutingTable.activeShards().size();
                     if (consistencyLevel == WriteConsistencyLevel.QUORUM && shardRoutingTable.getSize() > 2) {
                         // only for more than 2 in the number of shardIt it makes sense, otherwise its 1 shard with 1 replica, quorum is 1 (which is what it is initialized to)
+                        // TODO 只有个数超过2个才有意义，否则1个shard和一个replica。
+                        // TODO 如果写一致等级是quorum，使用一下计算公式，shardRoutingTable.getSize() / 2 + 1，即该分片和副本的数量的一般+1
                         requiredNumber = (shardRoutingTable.getSize() / 2) + 1;
                     } else if (consistencyLevel == WriteConsistencyLevel.ALL) {
+                        // TODO 如果等级是all，需要个数是所有
                         requiredNumber = shardRoutingTable.getSize();
                     } else {
+                        // TODO WriteConsistencyLevel.ONE
                         requiredNumber = 1;
                     }
                 } else {
+                    // return Not enough active copies to meet write consistency of...
                     sizeActive = 0;
                     requiredNumber = 1;
                 }
             } else {
+                // return Not enough active copies to meet write consistency of...
                 sizeActive = 0;
                 requiredNumber = 1;
             }
@@ -760,12 +781,14 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
     }
 
     protected Releasable getIndexShardOperationsCounter(ShardId shardId) {
+        // 判断index是否存在
         IndexService indexService = indicesService.indexServiceSafe(shardId.index().getName());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         return new IndexShardReference(indexShard);
     }
 
     /**
+     * TODO 负责发送副本请求到包含副本的节点
      * Responsible for sending replica requests (see {@link AsyncReplicaAction}) to nodes with replica copy, including
      * relocating copies
      */
@@ -812,6 +835,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
                 logger.debug("replication phase for request [{}] on [{}] is skipped due to index deletion after primary operation", replicaRequest, shardId);
             }
 
+            // TODO 计算要发送复制操作的目标节点数，包括relocating shards的节点
             // we calculate number of target nodes to send replication operations, including nodes with relocating shards
             int numberOfIgnoredShardInstances = 0;
             int numberOfPendingShardInstances = 0;
@@ -875,6 +899,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
         protected void doRun() {
             setPhase(task, "replicating");
             if (pending.get() == 0) {
+                // 指封装了response返回了？
                 doFinish();
                 return;
             }
@@ -899,6 +924,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
 
                 // we never execute replication operation locally as primary operation has already completed locally
                 // hence, we ignore any local shard for replication
+                // TODO 在当前节点处理主分片，所以主分片的节点是不会包含相同的副本分片的
                 if (nodes.localNodeId().equals(shard.currentNodeId()) == false) {
                     performOnReplica(shard);
                 }
@@ -1017,6 +1043,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
     }
 
     /**
+     * 是否复制到副本，如果返回true将跳过复制阶段
      * Indicated whether this operation should be replicated to shadow replicas or not. If this method returns true the replication phase will be skipped.
      * For example writes such as index and delete don't need to be replicated on shadow replicas but refresh and flush do.
      */

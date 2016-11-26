@@ -126,6 +126,7 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
      */
     public final void execute(Task task, Request request, ActionListener<Response> listener) {
 
+        // TODO 验证request是否准确
         ActionRequestValidationException validationException = request.validate();
         if (validationException != null) {
             listener.onFailure(validationException);
@@ -134,6 +135,11 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
 
         if (filters.length == 0) {
             try {
+                // TODO 这个过程有点让我晕，我DEBUG的路线：TransportBulkAction -> TransportShardBulkAction.execute
+                // 到这里之后，我跑去看TransportShardBulkAction类中是否有重写doExecute方法，发现没有，然后查看当前这个类的doExecute方法，最终调用一个abstract方法，
+                // 然后这个抽象方法的参数和当前类的子类（TransportReplicationAction）里的doExecute方法参数相同，是重写的父类的方法，
+                // 但是实现里是直接抛出一个UnsupportedOperationException异常，百思不得姐后，仔细一想，调用的是TransportReplicationAction的doExecute的另外一个方法
+                // TODO 需要注意方法执行，父类与子类之间的优先级
                 doExecute(task, request, listener);
             } catch(Throwable t) {
                 logger.trace("Error during transport action execution.", t);

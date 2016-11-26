@@ -100,9 +100,11 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     }
 
     public static final String DEFAULT_MAPPING = "_default_";
+    // TODO 是否启用动态mapping，默认true，参数：index.mapper.dynamic
     public static final String INDEX_MAPPER_DYNAMIC_SETTING = "index.mapper.dynamic";
     public static final String INDEX_MAPPING_NESTED_FIELDS_LIMIT_SETTING = "index.mapping.nested_fields.limit";
     public static final boolean INDEX_MAPPER_DYNAMIC_DEFAULT = true;
+    // TODO meta fields
     private static ObjectHashSet<String> META_FIELDS = ObjectHashSet.from(
             "_uid", "_id", "_type", "_all", "_parent", "_routing", "_index",
             "_size", "_timestamp", "_ttl"
@@ -585,6 +587,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             throw new TypeMissingException(index,
                     new IllegalStateException("trying to auto create mapping, but dynamic mapping is disabled"), type);
         }
+        // TODO 如果get(type)为空，返回动态创建的mapping
         mapper = parse(type, null, true);
         return new DocumentMapperForType(mapper, mapper.mapping());
     }

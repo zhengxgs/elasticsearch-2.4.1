@@ -219,7 +219,9 @@ public class OperationRouting extends AbstractComponent {
             throw new IndexNotFoundException(index);
         }
         final Version createdVersion = indexMetaData.getCreationVersion();
+        // TODO 获取hash函数
         final HashFunction hashFunction = indexMetaData.getRoutingHashFunction();
+        // TODO 是否使用type作为hash参数
         final boolean useType = indexMetaData.getRoutingUseType();
 
         final int hash;
@@ -233,8 +235,10 @@ public class OperationRouting extends AbstractComponent {
             hash = hash(hashFunction, routing);
         }
         if (createdVersion.onOrAfter(Version.V_2_0_0_beta1)) {
+            // 取模
             return MathUtils.mod(hash, indexMetaData.getNumberOfShards());
         } else {
+            // 兼容老版本发来请求
             return Math.abs(hash % indexMetaData.getNumberOfShards());
         }
     }

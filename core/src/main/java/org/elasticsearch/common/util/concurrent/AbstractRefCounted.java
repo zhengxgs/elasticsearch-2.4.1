@@ -61,6 +61,7 @@ public abstract class AbstractRefCounted implements RefCounted {
         int i = refCount.decrementAndGet();
         assert i >= 0;
         if (i == 0) {
+            // TODO refCount = 0时，真正关闭
             closeInternal();
         }
 

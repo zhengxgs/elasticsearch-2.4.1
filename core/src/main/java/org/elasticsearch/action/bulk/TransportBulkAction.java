@@ -87,9 +87,15 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         this.createIndexAction = createIndexAction;
 
         this.autoCreateIndex = autoCreateIndex;
+        // TODO 是否自动生成ID，默认true, 通过参数 action.bulk.action.allow_id_generation 进行控制
         this.allowIdGeneration = this.settings.getAsBoolean("action.bulk.action.allow_id_generation", true);
     }
 
+    /**
+     * TODO 实际执行批量处理方法
+     * @param bulkRequest
+     * @param listener
+     */
     @Override
     protected void doExecute(final BulkRequest bulkRequest, final ActionListener<BulkResponse> listener) {
         final long startTime = System.currentTimeMillis();
@@ -97,6 +103,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
 
         if (autoCreateIndex.needToCheck()) {
             // Keep track of all unique indices and all unique types per index for the create index requests:
+            // 去重取一个，用于创建索引
             final Set<String> autoCreateIndices = new HashSet<>();
             for (ActionRequest request : bulkRequest.requests) {
                 if (request instanceof DocumentRequest) {
@@ -109,10 +116,11 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             final AtomicInteger counter = new AtomicInteger(autoCreateIndices.size());
             ClusterState state = clusterService.state();
             for (final String index : autoCreateIndices) {
+                // TODO 判断是否需要创建索引，index可以是 Index Or Alias
                 if (autoCreateIndex.shouldAutoCreate(index, state)) {
                     CreateIndexRequest createIndexRequest = new CreateIndexRequest(bulkRequest);
                     createIndexRequest.index(index);
-                    createIndexRequest.cause("auto(bulk api)");
+                    createIndexRequest.cause("auto(bulk api)"); // 简单描述索引创建原因
                     createIndexRequest.masterNodeTimeout(bulkRequest.timeout());
                     createIndexAction.execute(createIndexRequest, new ActionListener<CreateIndexResponse>() {
                         @Override
@@ -198,9 +206,18 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         return Math.max(1, System.currentTimeMillis() - startTime);
     }
 
+    /**
+     * 执行批量处理
+     * @param bulkRequest
+     * @param startTime
+     * @param listener
+     * @param responses
+     */
     private void executeBulk(final BulkRequest bulkRequest, final long startTime, final ActionListener<BulkResponse> listener, final AtomicArray<BulkItemResponse> responses ) {
         final ClusterState clusterState = clusterService.state();
         // TODO use timeout to wait here if its blocked...
+
+        // TODO 判断集群状态是否在block状态，如果是就抛出异常
         clusterState.blocks().globalBlockedRaiseException(ClusterBlockLevel.WRITE);
 
         final ConcreteIndices concreteIndices = new ConcreteIndices(clusterState, indexNameExpressionResolver);
@@ -209,20 +226,24 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             ActionRequest request = bulkRequest.requests.get(i);
             //the request can only be null because we set it to null in the previous step, so it gets ignored
             if (request == null) {
+                // TODO 疑问：为什么有些调用入口要设置为null？
                 continue;
             }
             DocumentRequest documentRequest = (DocumentRequest) request;
             if (addFailureIfIndexIsUnavailable(documentRequest, bulkRequest, responses, i, concreteIndices, metaData)) {
                 continue;
             }
+            // 解析index，根据不同的request进行不同的处理
             String concreteIndex = concreteIndices.resolveIfAbsent(documentRequest);
             if (request instanceof IndexRequest) {
                 IndexRequest indexRequest = (IndexRequest) request;
                 MappingMetaData mappingMd = null;
-                if (metaData.hasIndex(concreteIndex)) {
+                if (metaData.hasIndex(concreteIndex)) { // 判断是否有索引
+                    // 获取mapping信息
                     mappingMd = metaData.index(concreteIndex).mappingOrDefault(indexRequest.type());
                 }
                 try {
+                    // TODO 处理信息，获取routing啊等。。如果mapping信息里有的话
                     indexRequest.process(metaData, mappingMd, allowIdGeneration, concreteIndex);
                 } catch (ElasticsearchParseException | RoutingMissingException e) {
                     BulkItemResponse.Failure failure = new BulkItemResponse.Failure(concreteIndex, indexRequest.type(), indexRequest.id(), e);
@@ -233,7 +254,8 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 }
             } else if (request instanceof DeleteRequest) {
                 try {
-                    TransportDeleteAction.resolveAndValidateRouting(metaData, concreteIndex, (DeleteRequest)request);
+                    // TODO 处理routing以及验证routing
+					TransportDeleteAction.resolveAndValidateRouting(metaData, concreteIndex, (DeleteRequest) request);
                 } catch(RoutingMissingException e) {
                     BulkItemResponse.Failure failure = new BulkItemResponse.Failure(concreteIndex, documentRequest.type(), documentRequest.id(), e);
                     BulkItemResponse bulkItemResponse = new BulkItemResponse(i, "delete", failure);
@@ -243,6 +265,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 }
             } else if (request instanceof UpdateRequest) {
                 try {
+                    // TODO 处理routing以及验证routing
                     TransportUpdateAction.resolveAndValidateRouting(metaData, concreteIndex, (UpdateRequest)request);
                 } catch(RoutingMissingException e) {
                     BulkItemResponse.Failure failure = new BulkItemResponse.Failure(concreteIndex, documentRequest.type(), documentRequest.id(), e);
@@ -257,6 +280,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         }
 
         // first, go over all the requests and create a ShardId -> Operations mapping
+        // TODO 根据不同的ShardId 进行分组
         Map<ShardId, List<BulkItemRequest>> requestsByShard = Maps.newHashMap();
 
         for (int i = 0; i < bulkRequest.requests.size(); i++) {
@@ -264,6 +288,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             if (request instanceof IndexRequest) {
                 IndexRequest indexRequest = (IndexRequest) request;
                 String concreteIndex = concreteIndices.getConcreteIndex(indexRequest.index());
+                // TODO 确定request属于哪个分片，生产shardId
                 ShardId shardId = clusterService.operationRouting().indexShards(clusterState, concreteIndex, indexRequest.type(), indexRequest.id(), indexRequest.routing()).shardId();
                 List<BulkItemRequest> list = requestsByShard.get(shardId);
                 if (list == null) {
@@ -300,12 +325,17 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         }
 
         final AtomicInteger counter = new AtomicInteger(requestsByShard.size());
+        // TODO 遍历各个ShardId处理
         for (Map.Entry<ShardId, List<BulkItemRequest>> entry : requestsByShard.entrySet()) {
             final ShardId shardId = entry.getKey();
             final List<BulkItemRequest> requests = entry.getValue();
             BulkShardRequest bulkShardRequest = new BulkShardRequest(bulkRequest, shardId, bulkRequest.refresh(), requests.toArray(new BulkItemRequest[requests.size()]));
+            // TODO 设置一致性等级，默认为default等级
             bulkShardRequest.consistencyLevel(bulkRequest.consistencyLevel());
+            // TODO 设置超时时间，默认1分钟
             bulkShardRequest.timeout(bulkRequest.timeout());
+
+            // TODO 调用父类TransportAction的execute方法，最后调用到 TransportReplicationAction 的 doExecute(Task, Request, ActionListener<Response>) 方法
             shardBulkAction.execute(bulkShardRequest, new ActionListener<BulkShardResponse>() {
                 @Override
                 public void onResponse(BulkShardResponse bulkShardResponse) {
@@ -314,6 +344,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                         if (bulkItemResponse.getResponse() != null) {
                             bulkItemResponse.getResponse().setShardInfo(bulkShardResponse.getShardInfo());
                         }
+                        // TODO 成功的写入responses
                         responses.set(bulkItemResponse.getItemId(), bulkItemResponse);
                     }
                     if (counter.decrementAndGet() == 0) {
@@ -354,6 +385,8 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
     private boolean addFailureIfIndexIsUnavailable(DocumentRequest request, BulkRequest bulkRequest, AtomicArray<BulkItemResponse> responses, int idx,
                                               final ConcreteIndices concreteIndices,
                                               final MetaData metaData) {
+
+        // TODO 先从jvm内存中取，
         String concreteIndex = concreteIndices.getConcreteIndex(request.index());
         Exception unavailableException = null;
         if (concreteIndex == null) {

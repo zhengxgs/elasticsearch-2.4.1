@@ -103,7 +103,14 @@ public class TransportDeleteAction extends TransportReplicationAction<DeleteRequ
         request.setShardId(shardId);
     }
 
+    /**
+     * TODO 解析routing 和 验证routing，未指定routing则RoutingMissingException异常
+     * @param metaData
+     * @param concreteIndex
+     * @param request
+     */
     public static void resolveAndValidateRouting(final MetaData metaData, String concreteIndex, DeleteRequest request) {
+        // 设置routing
         request.routing(metaData.resolveIndexRouting(request.routing(), request.index()));
         if (metaData.hasIndex(concreteIndex)) {
             // check if routing is required, if so, throw error if routing wasn't specified

@@ -56,7 +56,7 @@ public enum WriteConsistencyLevel {
     }
 
     public static WriteConsistencyLevel fromString(String value) {
-        if (value.equals("default")) {
+        if (value.equals("default")) {  // quorum
             return DEFAULT;
         } else if (value.equals("one")) {
             return ONE;

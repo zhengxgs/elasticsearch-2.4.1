@@ -40,6 +40,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class MappingUpdatedAction extends AbstractComponent {
 
+    // TODO 动态mapping创建超时，默认20s，参数：indices.mapping.dynamic_timeout
     public static final String INDICES_MAPPING_DYNAMIC_TIMEOUT = "indices.mapping.dynamic_timeout";
 
     private IndicesAdminClient client;
@@ -118,6 +119,7 @@ public class MappingUpdatedAction extends AbstractComponent {
      * been applied to the master node and propagated to data nodes.
      */
     public void updateMappingOnMasterSynchronously(String index, String type, Mapping mappingUpdate, TimeValue timeout) throws Throwable {
+        // TODO 执行mapping修改请求以及判断是否超时
         if (updateMappingRequest(index, type, mappingUpdate, timeout).get().isAcknowledged() == false) {
             throw new TimeoutException("Failed to acknowledge mapping update within [" + timeout + "]");
         }

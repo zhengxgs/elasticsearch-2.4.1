@@ -358,6 +358,7 @@ public class InternalEngine extends Engine {
             // We don't need to lock because this ID cannot be concurrently updated:
             innerCreateNoLock(create, Versions.NOT_FOUND, null);
         } else {
+            // TODO 锁住UID
             try (Releasable ignored = acquireLock(create.uid())) {
                 final long currentVersion;
                 final VersionValue versionValue;
@@ -421,6 +422,7 @@ public class InternalEngine extends Engine {
 
         create.updateVersion(updatedVersion);
 
+        // TODO 调用lucene的方法进行处理
         if (doUpdate) {
             if (create.docs().size() > 1) {
                 indexWriter.updateDocuments(create.uid(), create.docs());
@@ -434,6 +436,7 @@ public class InternalEngine extends Engine {
                 indexWriter.addDocument(create.docs().get(0));
             }
         }
+        // TODO 写入Translog
         Translog.Location translogLocation = translog.add(new Translog.Create(create));
 
         versionMap.putUnderLock(create.uid().bytes(), new VersionValue(updatedVersion, translogLocation));
@@ -458,6 +461,7 @@ public class InternalEngine extends Engine {
             maybeFailEngine("index", t);
             throw new IndexFailedEngineException(shardId, index.type(), index.id(), t);
         }
+        // TODO Refresh操作和检查versionMap
         checkVersionMapRefresh();
         return created;
     }
@@ -491,6 +495,7 @@ public class InternalEngine extends Engine {
     }
 
     private boolean innerIndex(Index index) throws IOException {
+        // TODO 锁住uid
         try (Releasable ignored = acquireLock(index.uid())) {
             final long currentVersion;
             VersionValue versionValue = versionMap.getUnderLock(index.uid().bytes());
@@ -565,8 +570,7 @@ public class InternalEngine extends Engine {
     private void maybePruneDeletedTombstones() {
         // It's expensive to prune because we walk the deletes map acquiring dirtyLock for each uid so we only do it
         // every 1/4 of gcDeletesInMillis:
-        if (engineConfig.isEnableGcDeletes() && engineConfig.getThreadPool().estimatedTimeInMillis() - lastDeleteVersionPruneTimeMSec >
-                engineConfig.getGcDeletesInMillis() * 0.25) {
+        if (engineConfig.isEnableGcDeletes() && engineConfig.getThreadPool().estimatedTimeInMillis() - lastDeleteVersionPruneTimeMSec > engineConfig.getGcDeletesInMillis() * 0.25) {
             pruneDeletedTombstones();
         }
     }
@@ -664,8 +668,11 @@ public class InternalEngine extends Engine {
     public void refresh(String source) throws EngineException {
         // we obtain a read lock here, since we don't want a flush to happen while we are refreshing
         // since it flushes the index as well (though, in terms of concurrency, we are allowed to do it)
+        // TODO refresh前获取一个读锁,保证当前shard只有一个线程在进行refresh
         try (ReleasableLock lock = readLock.acquire()) {
+            // 判断shard是否close
             ensureOpen();
+            // 正式开始,调用lucene的类开草
             searcherManager.maybeRefreshBlocking();
         } catch (AlreadyClosedException e) {
             ensureOpen();
@@ -682,6 +689,7 @@ public class InternalEngine extends Engine {
         // for a long time:
         maybePruneDeletedTombstones();
         versionMapRefreshPending.set(false);
+        // TODO 每次进行refresh操作的时候同时刷新merge的config
         mergeScheduler.refreshConfig();
     }
 

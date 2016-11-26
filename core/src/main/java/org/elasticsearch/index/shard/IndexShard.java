@@ -178,7 +178,9 @@ public class IndexShard extends AbstractIndexShardComponent {
 
     private TimeValue refreshInterval;
 
+    // TODO refresh
     private volatile ScheduledFuture<?> refreshScheduledFuture;
+    // TODO merge
     private volatile ScheduledFuture<?> mergeScheduleFuture;
     protected volatile ShardRouting shardRouting;
     protected volatile IndexShardState state;
@@ -553,11 +555,13 @@ public class IndexShard extends AbstractIndexShardComponent {
 
     public Engine.Index prepareIndexOnPrimary(SourceToParse source, long version, VersionType versionType, boolean canHaveDuplicates) {
         try {
+            // TODO 验证shard是不是主分片
             if (shardRouting.primary() == false) {
                 throw new IllegalIndexShardStateException(shardId, state, "shard is not a primary");
             }
-            return prepareIndex(docMapper(source.type()), source, version, versionType, Engine.Operation.Origin.PRIMARY, state !=
-                    IndexShardState.STARTED || canHaveDuplicates);
+            // 分片状态不等于STARTED状态，或者允许在同一个Shard重复执行
+            boolean b = state != IndexShardState.STARTED || canHaveDuplicates;
+            return prepareIndex(docMapper(source.type()), source, version, versionType, Engine.Operation.Origin.PRIMARY, b);
         } catch (Throwable t) {
             verifyNotClosed(t);
             throw t;
@@ -577,6 +581,7 @@ public class IndexShard extends AbstractIndexShardComponent {
     static Engine.Index prepareIndex(DocumentMapperForType docMapper, SourceToParse source, long version, VersionType versionType, Engine
             .Operation.Origin origin, boolean canHaveDuplicates) {
         long startTime = System.nanoTime();
+        // 解析文档
         ParsedDocument doc = docMapper.getDocumentMapper().parse(source);
         if (docMapper.getMapping() != null) {
             doc.addDynamicMappingsUpdate(docMapper.getMapping());
@@ -1103,6 +1108,7 @@ public class IndexShard extends AbstractIndexShardComponent {
         }
     }
 
+    // TODO 启用刷新schedule
     private void startScheduledTasksIfNeeded() {
         if (refreshInterval.millis() > 0) {
             refreshScheduledFuture = threadPool.schedule(refreshInterval, ThreadPool.Names.SAME, new EngineRefresher());
@@ -1119,6 +1125,7 @@ public class IndexShard extends AbstractIndexShardComponent {
     }
 
     /**
+     * TODO 缓冲区满了就刷新来释放堆内存
      * Change the indexing and translog buffer sizes.  If {@code IndexWriter} is currently using more than
      * the new buffering indexing size then we do a refresh to free up the heap.
      */
@@ -1327,6 +1334,9 @@ public class IndexShard extends AbstractIndexShardComponent {
         }
     }
 
+    /**
+     * refresh刷新任务类
+     */
     class EngineRefresher implements Runnable {
         @Override
         public void run() {

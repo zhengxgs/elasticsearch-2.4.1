@@ -46,16 +46,22 @@ public class BulkProcessor implements Closeable {
 
     /**
      * A listener for the execution.
+     *
+     * 监听执行动作
      */
     public interface Listener {
 
         /**
          * Callback before the bulk is executed.
+         *
+         * TODO 批量执行前回调
          */
         void beforeBulk(long executionId, BulkRequest request);
 
         /**
          * Callback after a successful execution of bulk request.
+         *
+         * TODO 批量执行成功后进行回调
          */
         void afterBulk(long executionId, BulkRequest request, BulkResponse response);
 
@@ -64,12 +70,16 @@ public class BulkProcessor implements Closeable {
          *
          * Note that in case an instance of <code>InterruptedException</code> is passed, which means that request processing has been
          * cancelled externally, the thread's interruption status has been restored prior to calling this method.
+         *
+         * TODO 批量执行失败后进行回调
          */
         void afterBulk(long executionId, BulkRequest request, Throwable failure);
     }
 
     /**
      * A builder used to create a build an instance of a bulk processor.
+     *
+     * 使用Builder对象创建 bulk processor. 创建时设置执行策略，比如什么时候提交，大小？请求数量？时间？
      */
     public static class Builder {
 
@@ -103,6 +113,7 @@ public class BulkProcessor implements Closeable {
         }
 
         /**
+         * TODO 设置允许执行并发数，如果设置为0，指运行单个执行
          * Sets the number of concurrent requests allowed to be executed. A value of 0 means that only a single
          * request will be allowed to be executed. A value of 1 means 1 concurrent request is allowed to be executed
          * while accumulating new bulk requests. Defaults to <tt>1</tt>.
@@ -113,6 +124,7 @@ public class BulkProcessor implements Closeable {
         }
 
         /**
+         * TODO 设置什么时候刷新当前已提交的bulkrequest，默认是1000个，可以设置-1禁用掉此选项
          * Sets when to flush a new bulk request based on the number of actions currently added. Defaults to
          * <tt>1000</tt>. Can be set to <tt>-1</tt> to disable it.
          */
@@ -122,6 +134,7 @@ public class BulkProcessor implements Closeable {
         }
 
         /**
+         * TODO 设置当大小多少时进行flush操作，默认5mb，设置-1禁用此选项
          * Sets when to flush a new bulk request based on the size of actions currently added. Defaults to
          * <tt>5mb</tt>. Can be set to <tt>-1</tt> to disable it.
          */
@@ -340,17 +353,20 @@ public class BulkProcessor implements Closeable {
         }
     }
 
+    // TODO 定时刷新任务
     class Flush implements Runnable {
 
         @Override
         public void run() {
             synchronized (BulkProcessor.this) {
+                // 每次执行时判断状态是否关闭和request的数量
                 if (closed) {
                     return;
                 }
                 if (bulkRequest.numberOfActions() == 0) {
                     return;
                 }
+                // bulkRequestHandler.execute(bulkRequest, executionId);
                 execute();
             }
         }

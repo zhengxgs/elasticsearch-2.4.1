@@ -21,7 +21,7 @@ package org.elasticsearch.index.shard;
 
 
 /**
- *
+ * Shard状态枚举类
  */
 public enum IndexShardState {
     CREATED((byte) 0),

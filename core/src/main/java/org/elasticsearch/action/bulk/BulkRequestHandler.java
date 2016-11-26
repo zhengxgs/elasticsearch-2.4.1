@@ -45,14 +45,32 @@ abstract class BulkRequestHandler {
     public abstract boolean awaitClose(long timeout, TimeUnit unit) throws InterruptedException;
 
 
+    /**
+     * 同步处理
+     * @param client
+     * @param backoffPolicy
+     * @param listener
+     * @return
+     */
     public static BulkRequestHandler syncHandler(Client client, BackoffPolicy backoffPolicy, BulkProcessor.Listener listener) {
         return new SyncBulkRequestHandler(client, backoffPolicy, listener);
     }
 
+    /**
+     * 异步处理
+     * @param client
+     * @param backoffPolicy
+     * @param listener
+     * @param concurrentRequests
+     * @return
+     */
     public static BulkRequestHandler asyncHandler(Client client, BackoffPolicy backoffPolicy, BulkProcessor.Listener listener, int concurrentRequests) {
         return new AsyncBulkRequestHandler(client, backoffPolicy, listener, concurrentRequests);
     }
 
+    /**
+     * TODO 同步批量执行处理类
+     */
     private static class SyncBulkRequestHandler extends BulkRequestHandler {
         private final BulkProcessor.Listener listener;
         private final BackoffPolicy backoffPolicy;

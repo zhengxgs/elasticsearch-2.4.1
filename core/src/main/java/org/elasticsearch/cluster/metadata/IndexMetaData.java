@@ -151,7 +151,10 @@ public class IndexMetaData implements Diffable<IndexMetaData>, FromXContentBuild
     public static final String INDEX_SETTING_PREFIX = "index.";
     public static final String SETTING_NUMBER_OF_SHARDS = "index.number_of_shards";
     public static final String SETTING_NUMBER_OF_REPLICAS = "index.number_of_replicas";
+    // 此参数与共享文件系统使用，不太了解
+    // TODO index.shadow_replicas 默认false，设置为true，index和create操作不会在副本进行执行，（影子副本？？）
     public static final String SETTING_SHADOW_REPLICAS = "index.shadow_replicas";
+    // TODO index.shared_filesystem的设置会根据shadow_replicas的设置进行设置。与shadow_replicas是配合使用的
     public static final String SETTING_SHARED_FILESYSTEM = "index.shared_filesystem";
     public static final String SETTING_AUTO_EXPAND_REPLICAS = "index.auto_expand_replicas";
     public static final String SETTING_READ_ONLY = "index.blocks.read_only";
@@ -206,6 +209,8 @@ public class IndexMetaData implements Diffable<IndexMetaData>, FromXContentBuild
     private final boolean useTypeForRouting;
 
     private IndexMetaData(String index, long version, State state, Settings settings, ImmutableOpenMap<String, MappingMetaData> mappings, ImmutableOpenMap<String, AliasMetaData> aliases, ImmutableOpenMap<String, Custom> customs) {
+
+        // TODO  验证主分片与副本的设置，主分片的设置必须大于0，副本不能为负数
         Integer maybeNumberOfShards = settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null);
         if (maybeNumberOfShards == null) {
             throw new IllegalArgumentException("must specify numberOfShards for index [" + index + "]");
@@ -234,18 +239,21 @@ public class IndexMetaData implements Diffable<IndexMetaData>, FromXContentBuild
         this.totalNumberOfShards = numberOfShards * (numberOfReplicas + 1);
         this.aliases = aliases;
 
+        // TODO 获取以 index.routing.allocation.require. 开头的参数
         Map<String, String> requireMap = settings.getByPrefix("index.routing.allocation.require.").getAsMap();
         if (requireMap.isEmpty()) {
             requireFilters = null;
         } else {
             requireFilters = DiscoveryNodeFilters.buildFromKeyValue(AND, requireMap);
         }
+        // TODO 获取以 index.routing.allocation.include. 开头的参数
         Map<String, String> includeMap = settings.getByPrefix("index.routing.allocation.include.").getAsMap();
         if (includeMap.isEmpty()) {
             includeFilters = null;
         } else {
             includeFilters = DiscoveryNodeFilters.buildFromKeyValue(OR, includeMap);
         }
+        // TODO 获取以 index.routing.allocation.exclude. 开头的参数
         Map<String, String> excludeMap = settings.getByPrefix("index.routing.allocation.exclude.").getAsMap();
         if (excludeMap.isEmpty()) {
             excludeFilters = null;
@@ -264,6 +272,8 @@ public class IndexMetaData implements Diffable<IndexMetaData>, FromXContentBuild
         } else {
             this.minimumCompatibleLuceneVersion = null;
         }
+        // 分布的好不好，靠它了
+        // TODO index.legacy.routing.hash.type 参数可修改使用其他hash，默认使用Murmur3HashFunction，也可修改为DjbHashFunction，SimpleHashFunction
         final String hashFunction = settings.get(SETTING_LEGACY_ROUTING_HASH_FUNCTION);
         if (hashFunction == null) {
             routingHashFunction = MURMUR3_HASH_FUNCTION;
@@ -656,7 +666,7 @@ public class IndexMetaData implements Diffable<IndexMetaData>, FromXContentBuild
         public int numberOfReplicas() {
             return settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, -1);
         }
-        
+
         public Builder creationDate(long creationDate) {
             settings = settingsBuilder().put(settings).put(SETTING_CREATION_DATE, creationDate).build();
             return this;

@@ -317,6 +317,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
     }
 
     /**
+     * TODO 这个方法每次调用，store的引用计数（refCount）就+1，只有当refCount=0的时候，才会关闭，每次调用close只是-1，并是真正的关闭，只有为0时才是正在的关闭
      * Tries to increment the refCount of this Store instance. This method will return <tt>true</tt> iff the refCount was
      * incremented successfully otherwise <tt>false</tt>. RefCounts are used to determine when a
      * Store can be closed safely, i.e. as soon as there are no more references. Be sure to always call a

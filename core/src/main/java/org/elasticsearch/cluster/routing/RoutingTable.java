@@ -45,6 +45,7 @@ import java.util.Map;
 import static com.google.common.collect.Maps.newHashMap;
 
 /**
+ * 路由表
  * Represents a global cluster-wide routing table for all indices including the
  * version of the current routing state.
  *

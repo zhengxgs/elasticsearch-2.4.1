@@ -153,10 +153,11 @@ public class TransportIndexAction extends TransportReplicationAction<IndexReques
 
         IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
         IndexShard indexShard = indexService.shardSafe(request.shardId().id());
-
+        // TODO 在主分片上执行IndexRequest,写入translog
         final WriteResult<IndexResponse> result = executeIndexRequestOnPrimary(null, request, indexShard, mappingUpdatedAction);
         final IndexResponse response = result.response;
         final Translog.Location location = result.location;
+        // TODO 写入后刷新
         processAfterWrite(request.refresh(), indexShard, location);
         return new Tuple<>(response, request);
     }
@@ -201,12 +202,19 @@ public class TransportIndexAction extends TransportReplicationAction<IndexReques
      * on the {@link IndexRequest.OpType} of the request.
      */
     public static Engine.IndexingOperation prepareIndexOperationOnPrimary(BulkShardRequest shardRequest, IndexRequest request, IndexShard indexShard) {
-        SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.PRIMARY, request.source()).index(request.index()).type(request.type()).id(request.id())
-            .routing(request.routing()).parent(request.parent()).timestamp(request.timestamp()).ttl(request.ttl());
+        SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.PRIMARY, request.source())
+            .index(request.index())
+            .type(request.type())
+            .id(request.id())
+            .routing(request.routing())
+            .parent(request.parent())
+            .timestamp(request.timestamp())
+            .ttl(request.ttl());
         boolean canHaveDuplicates = request.canHaveDuplicates();
         if (shardRequest != null) {
             canHaveDuplicates |= shardRequest.canHaveDuplicates();
         }
+        // TODO 通过request的optype判断是index还是create操作
         if (request.opType() == IndexRequest.OpType.INDEX) {
             return indexShard.prepareIndexOnPrimary(sourceToParse, request.version(), request.versionType(), canHaveDuplicates);
         } else {
@@ -220,9 +228,11 @@ public class TransportIndexAction extends TransportReplicationAction<IndexReques
      * {@link RetryOnPrimaryException} if the operation needs to be re-tried.
      */
     public static WriteResult<IndexResponse> executeIndexRequestOnPrimary(BulkShardRequest shardRequest, IndexRequest request, IndexShard indexShard, MappingUpdatedAction mappingUpdatedAction) throws Throwable {
+        // TODO 获取Engine的类型，是index还是create。处理mapping是否update，是否需要dynamicMappingsUpdate.merge处理
         Engine.IndexingOperation operation = prepareIndexOperationOnPrimary(shardRequest, request, indexShard);
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         final ShardId shardId = indexShard.shardId();
+        // 判断mapping是否有修改
         if (update != null) {
             final String indexName = shardId.getIndex();
             mappingUpdatedAction.updateMappingOnMasterSynchronously(indexName, request.type(), update);

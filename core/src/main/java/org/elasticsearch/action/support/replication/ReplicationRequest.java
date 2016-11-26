@@ -105,6 +105,7 @@ public class ReplicationRequest<T extends ReplicationRequest<T>> extends ChildTa
 
     /**
      * Is this request can potentially be dup on a single shard.
+     * 这个请求可能会在同一个shard上重复
      */
     public boolean canHaveDuplicates() {
         return canHaveDuplicates;

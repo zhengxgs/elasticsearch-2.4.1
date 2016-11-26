@@ -418,6 +418,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, Fr
     }
 
     /**
+     * TODO 获取索引routing
      * Returns indexing routing for the given index.
      */
     // TODO: This can be moved to IndexNameExpressionResolver too, but this means that we will support wildcards and other expressions

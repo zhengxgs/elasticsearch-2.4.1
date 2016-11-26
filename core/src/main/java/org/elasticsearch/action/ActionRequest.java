@@ -41,6 +41,10 @@ public abstract class ActionRequest<T extends ActionRequest> extends TransportRe
         //this.listenerThreaded = request.listenerThreaded();
     }
 
+    /**
+     * TODO 验证各个request是否有效，例如IndexRequest的index，type，source 等
+     * @return
+     */
     public abstract ActionRequestValidationException validate();
 
     @Override
