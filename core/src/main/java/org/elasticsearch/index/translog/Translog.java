@@ -68,6 +68,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * TODO Translog是每一个索引分片的组件，以持久的方式记录所有未提交的索引操作。在es中，每个InternalEngine有一个Translog的实例。
+ * 引擎使用TRANSLOG_GENERATION_KEY来记录当前translog生成getGeneration（）在其提交元数据中，
+ * 以引用包含尚未成功提交到引擎lucene索引的所有操作的生成。 此外，由于Elasticsearch 2.0引擎还记录每个提交的TRANSLOG_UUID_KEY，以确保lucene索引和事务日志文件之间的强关联。
+ * 这个UUID防止从属于不同的引擎的事务日志中进行代理恢复
+ *
  * A Translog is a per index shard component that records all non-committed index operations in a durable manner.
  * In Elasticsearch there is one Translog instance per {@link org.elasticsearch.index.engine.InternalEngine}. The engine
  * records the current translog generation {@link Translog#getGeneration()} in it's commit metadata using {@link #TRANSLOG_GENERATION_KEY}
@@ -76,6 +81,9 @@ import java.util.regex.Pattern;
  * between the lucene index an the transaction log file. This UUID is used to prevent accidential recovery from a transaction log that belongs to a
  * different engine.
  * <p>
+ *
+ *  每个Translog指有一个translog文件在任何时刻打开
+ *
  * Each Translog has only one translog file open at any time referenced by a translog generation ID. This ID is written to a <tt>translog.ckp</tt> file that is designed
  * to fit in a single disk block such that a write of the file is atomic. The checkpoint file is written on each fsync operation of the translog and records the number of operations
  * written, the current tranlogs file generation and it's fsynced offset in bytes.
@@ -1782,25 +1790,34 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         try (ReleasableLock lock = writeLock.acquire()) {
             ensureOpen();
             if (currentCommittingTranslog != null) {
+                // 已经提交了
                 throw new IllegalStateException("already committing a translog with generation: " + currentCommittingTranslog.getGeneration());
             }
             final TranslogWriter oldCurrent = current;
             oldCurrent.ensureOpen();
             oldCurrent.sync();
             currentCommittingTranslog = current.immutableReader();
+            // 解析translog.ckp地址
             Path checkpoint = location.resolve(CHECKPOINT_FILE_NAME);
             assert Checkpoint.read(checkpoint).generation == currentCommittingTranslog.getGeneration();
+            // 解析translog-xxxx.ckp地址
             Path commitCheckpoint = location.resolve(getCommitCheckpointFileName(currentCommittingTranslog.getGeneration()));
+            // 把translog.ckp复制到当前需要commit的translog.ckp文件中
             Files.copy(checkpoint, commitCheckpoint);
+            // false表示一个文件，true表示一个目录
+            // 调用FileChannel.force方法强制写到磁盘上
             IOUtils.fsync(commitCheckpoint, false);
             IOUtils.fsync(commitCheckpoint.getParent(), true);
             // create a new translog file - this will sync it and update the checkpoint data;
+            // 创建一个新文件，translog-xx+1.ckp，并指向当前current
             current = createWriter(current.getGeneration() + 1);
             // notify all outstanding views of the new translog (no views are created now as
             // we hold a write lock).
             for (View view : outstandingViews) {
+                // 将老的translog与新的translog合并
                 view.onNewTranslog(currentCommittingTranslog.clone(), current.newReaderFromWriter());
             }
+            // 关闭老的translog文件写入
             IOUtils.close(oldCurrent);
             logger.trace("current translog set to [{}]", current.getGeneration());
             assert oldCurrent.syncNeeded() == false : "old translog oldCurrent must not need a sync";
@@ -1821,12 +1838,15 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             }
             lastCommittedTranslogFileGeneration = current.getGeneration(); // this is important - otherwise old files will not be cleaned up
             if (recoveredTranslogs.isEmpty() == false) {
+                // 关闭recoveredTranslogs，并将列表清空
                 IOUtils.close(recoveredTranslogs);
                 recoveredTranslogs.clear();
             }
             toClose = this.currentCommittingTranslog;
+            // 初始化当前的CommittingTranslog
             this.currentCommittingTranslog = null;
         } finally {
+            // 关闭旧的CommittingTranslog
             IOUtils.close(toClose);
         }
     }

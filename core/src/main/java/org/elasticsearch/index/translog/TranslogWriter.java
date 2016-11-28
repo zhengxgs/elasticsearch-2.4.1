@@ -174,6 +174,8 @@ public class TranslogWriter extends TranslogReader {
     }
 
     /**
+     * 所有缓存区写入到硬盘和fsync文件
+     *
      * write all buffered ops to disk and fsync file
      */
     public synchronized void sync() throws IOException { // synchronized to ensure only one sync happens a time
@@ -188,6 +190,7 @@ public class TranslogWriter extends TranslogReader {
     }
 
     /**
+     * 如果有缓冲操作，返回true
      * returns true if there are buffered ops
      */
     public boolean syncNeeded() {

@@ -781,6 +781,8 @@ public class IndexShard extends AbstractIndexShardComponent {
         // we allows flush while recovering, since we allow for operations to happen
         // while recovering, and we want to keep the translog at bay (up to deletes, which
         // we don't gc).
+
+        // TODO 非[ STARTED, RECOVERING, POST_RECOVERY ]这几个状态时，禁止flush操作
         verifyStartedOrRecovering();
 
         long time = System.nanoTime();
@@ -1078,6 +1080,10 @@ public class IndexShard extends AbstractIndexShardComponent {
         }
     }
 
+    /**
+     * 判断shard状态是否等于[ STARTED, RECOVERING, POST_RECOVERY]
+     * @throws IllegalIndexShardStateException
+     */
     protected final void verifyStartedOrRecovering() throws IllegalIndexShardStateException {
         IndexShardState state = this.state; // one time volatile read
         if (state != IndexShardState.STARTED && state != IndexShardState.RECOVERING && state != IndexShardState.POST_RECOVERY) {

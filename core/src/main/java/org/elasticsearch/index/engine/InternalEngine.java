@@ -664,6 +664,9 @@ public class InternalEngine extends Engine {
         refresh("delete_by_query");
     }
 
+
+    // TODO ES新插入的数据必须refresh之后才能被搜索，最后写入到磁盘需要执行flush操作，为了避免flush前数据丢失，ES还记录了translog日志用以replay。
+    // TODO 这里的refresh和flush都是针对单个shard的。
     @Override
     public void refresh(String source) throws EngineException {
         // we obtain a read lock here, since we don't want a flush to happen while we are refreshing
@@ -736,6 +739,10 @@ public class InternalEngine extends Engine {
         ensureOpen();
         final byte[] newCommitId;
         /*
+         * 这里会有两把锁，一是read lock，另一个是flush lock，而且锁的顺序是很重要的，不然会造成死锁
+         * 线程1：通过api flush，获得了flush lock，但是read lock block了，因为线程2拥有了write lock
+         * 线程2：在recovery末尾的flush拥有write lock，但是线程1的flush lock block了。
+         *
          * Unfortunately the lock order is important here. We have to acquire the readlock first otherwise
          * if we are flushing at the end of the recovery while holding the write lock we can deadlock if:
          *  Thread 1: flushes via API and gets the flush lock but blocks on the readlock since Thread 2 has the writeLock
@@ -745,6 +752,7 @@ public class InternalEngine extends Engine {
             ensureOpen();
             if (flushLock.tryLock() == false) {
                 // if we can't get the lock right away we block if needed otherwise barf
+                // 没有获取到flush lock，说明其他线程在进行flush操作，在这里一直等到其他线程flush完了之后才继续操作
                 if (waitIfOngoing) {
                     logger.trace("waiting for in-flight flush to finish");
                     flushLock.lock();
@@ -756,13 +764,17 @@ public class InternalEngine extends Engine {
                 logger.trace("acquired flush lock immediately");
             }
             try {
+                // 判断是否有些改变没有提交 或者 强制刷新
                 if (indexWriter.hasUncommittedChanges() || force) {
                     try {
+                        // 预commit操作，处理checkpoint，commitCheckpoint强制写入到文件
                         translog.prepareCommit();
                         logger.trace("starting commit for flush; commitTranslog=true");
+                        // commit to lucene 完成
                         commitIndexWriter(indexWriter, translog);
                         logger.trace("finished commit for flush");
                         // we need to refresh in order to clear older version values
+                        // 目的是清除老的Version values
                         refresh("version_table_flush");
                         // after refresh documents can be retrieved from the index so we can now commit the translog
                         translog.commit();

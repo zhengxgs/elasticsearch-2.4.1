@@ -217,11 +217,13 @@ public class ElasticsearchClient {
 
 		SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(INDEX).setTypes(TYPE);
 		searchRequestBuilder.setFrom(0).setSize(10000);
-		searchRequestBuilder.setQuery(boolQueryBuilder);
+        // searchRequestBuilder.setFetchSource();
+        searchRequestBuilder.setQuery(boolQueryBuilder);
 		// searchRequestBuilder.setPostFilter(boolQueryBuilder);
 
 		SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
-		SearchHits hits = searchResponse.getHits();
+        System.out.println(searchResponse);
+        SearchHits hits = searchResponse.getHits();
 		System.out.println("查询总数：" + hits.getHits().length);
 		for (SearchHit hit : hits) {
 			Map<String, Object> source = hit.getSource();

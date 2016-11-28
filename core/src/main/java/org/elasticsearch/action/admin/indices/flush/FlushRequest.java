@@ -27,6 +27,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 /**
+ * TODO 刷新一个或多个索引的请求，过程：将translog刷新到索引存储并清除translog事务日志来释放内存。
+ *
  * A flush request to flush one or more indices. The flush process of an index basically frees memory from the index
  * by flushing data to the index storage and clearing the internal transaction log. By default, Elasticsearch uses
  * memory heuristics in order to automatically trigger flush operations as required in order to clear memory.

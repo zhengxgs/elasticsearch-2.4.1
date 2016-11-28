@@ -43,11 +43,17 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 
+/**
+ * Translog flush service，从文件缓存刷新到磁盘
+ */
 public class TranslogService extends AbstractIndexShardComponent implements Closeable {
+    // TODO translog flush时间控制，默认5s
     public static final String INDEX_TRANSLOG_FLUSH_INTERVAL = "index.translog.interval";
+    // 当满足以下3个任意一个条件的时候，就执行flush，优先级如下面排序
     public static final String INDEX_TRANSLOG_FLUSH_THRESHOLD_OPS = "index.translog.flush_threshold_ops";
     public static final String INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE = "index.translog.flush_threshold_size";
     public static final String INDEX_TRANSLOG_FLUSH_THRESHOLD_PERIOD = "index.translog.flush_threshold_period";
+
     public static final String INDEX_TRANSLOG_DISABLE_FLUSH = "index.translog.disable_flush";
 
     private final ThreadPool threadPool;
@@ -123,6 +129,7 @@ public class TranslogService extends AbstractIndexShardComponent implements Clos
         return new TimeValue(interval.millis() + (ThreadLocalRandom.current().nextLong(interval.millis())));
     }
 
+    // TODO translog flush刷新任务类
     // public for testing
     public class TranslogBasedFlush extends AbstractRunnable {
 
@@ -145,6 +152,7 @@ public class TranslogService extends AbstractIndexShardComponent implements Clos
         }
 
         /** checks if we need to flush and reschedules a new check. returns true if a new check was scheduled */
+        // TODO 执行前判断分片状态，是否禁止flush。当满足任意一个条件时就进行flush
         public boolean maybeFlushAndReschedule() {
             if (indexShard.state() == IndexShardState.CLOSED) {
                 return false;
@@ -219,6 +227,7 @@ public class TranslogService extends AbstractIndexShardComponent implements Clos
                 @Override
                 protected void doRun() throws Exception {
                     try {
+                        // TODO 创建一个FlushRequest对象进行刷新处理
                         indexShard.flush(new FlushRequest());
                     } catch (IllegalIndexShardStateException e) {
                         // we are being closed, or in created state, ignore
