@@ -183,7 +183,7 @@ public abstract class Engine implements Closeable {
         /** Activate throttling, which switches the lock to be a real lock */
         public void activate() {
             assert lock == NOOP_LOCK : "throttling activated while already active";
-            // TODO 激活限流，原理看不太懂，这里使用了lockReference
+            // TODO 激活限流，这里使用了lockReference
             lock = lockReference;
         }
 
