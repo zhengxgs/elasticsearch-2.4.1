@@ -38,9 +38,12 @@ import java.nio.file.Path;
  */
 public final class TranslogConfig {
 
+    // TODO 在每个索引，删除，更新或批量请求后是否fsync和提交translog，默认是的，这样不会丢数据
     public static final String INDEX_TRANSLOG_DURABILITY = "index.translog.durability";
+    // TODO 是否缓冲事务日志的写入。默认缓冲
     public static final String INDEX_TRANSLOG_FS_TYPE = "index.translog.fs.type";
     public static final String INDEX_TRANSLOG_BUFFER_SIZE = "index.translog.fs.buffer_size";
+    // TODO 将translog同步到磁盘的间隔时间，默认5s
     public static final String INDEX_TRANSLOG_SYNC_INTERVAL = "index.translog.sync_interval";
 
     private final TimeValue syncInterval;

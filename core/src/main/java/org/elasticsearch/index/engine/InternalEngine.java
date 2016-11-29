@@ -342,6 +342,7 @@ public class InternalEngine extends Engine {
                 // Don't throttle recovery operations
                 innerCreate(create);
             } else {
+                // TODO 判断是否限流，如果限流，则等待获取到lock才create
                 try (Releasable r = throttle.acquireThrottle()) {
                     innerCreate(create);
                 }
@@ -1062,6 +1063,8 @@ public class InternalEngine extends Engine {
             } catch (Throwable ignore) {
             }
             iwc.setInfoStream(verbose ? InfoStream.getDefault() : new LoggerInfoStream(logger));
+
+            // TODO 设置ElasticsearchConcurrentMergeScheduler到IndexWriterConfig
             iwc.setMergeScheduler(mergeScheduler);
             MergePolicy mergePolicy = config().getMergePolicy();
             // Give us the opportunity to upgrade old segments while performing
@@ -1210,6 +1213,10 @@ public class InternalEngine extends Engine {
         return indexWriter.getConfig();
     }
 
+
+    /**
+     * ElasticsearchConcurrentMergeScheduler 子类
+     */
     private final class EngineMergeScheduler extends ElasticsearchConcurrentMergeScheduler {
         private final AtomicInteger numMergesInFlight = new AtomicInteger(0);
         private final AtomicBoolean isThrottling = new AtomicBoolean();
@@ -1220,6 +1227,8 @@ public class InternalEngine extends Engine {
 
         @Override
         public synchronized void beforeMerge(OnGoingMerge merge) {
+
+            // 获取要merge的数量，如果大于配置的segments则需要限流
             int maxNumMerges = mergeScheduler.getMaxMergeCount();
             if (numMergesInFlight.incrementAndGet() > maxNumMerges) {
                 if (isThrottling.getAndSet(true) == false) {

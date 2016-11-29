@@ -34,61 +34,61 @@ import org.elasticsearch.index.settings.IndexSettingsService;
  * where the index data is stored, and are immutable up to delete markers.
  * Segments are, periodically, merged into larger segments to keep the
  * index size at bay and expunge deletes.
- * 
+ *
  * <p>
  * Merges select segments of approximately equal size, subject to an allowed
  * number of segments per tier. The merge policy is able to merge
  * non-adjacent segments, and separates how many segments are merged at once from how many
  * segments are allowed per tier. It also does not over-merge (i.e., cascade merges).
- * 
+ *
  * <p>
  * All merge policy settings are <b>dynamic</b> and can be updated on a live index.
  * The merge policy has the following settings:
- * 
+ *
  * <ul>
  * <li><code>index.merge.policy.expunge_deletes_allowed</code>:
- * 
+ *
  *     When expungeDeletes is called, we only merge away a segment if its delete
  *     percentage is over this threshold. Default is <code>10</code>.
- * 
+ *
  * <li><code>index.merge.policy.floor_segment</code>:
- * 
+ *
  *     Segments smaller than this are "rounded up" to this size, i.e. treated as
  *     equal (floor) size for merge selection. This is to prevent frequent
  *     flushing of tiny segments, thus preventing a long tail in the index. Default
  *     is <code>2mb</code>.
- * 
+ *
  * <li><code>index.merge.policy.max_merge_at_once</code>:
- * 
+ *
  *     Maximum number of segments to be merged at a time during "normal" merging.
  *     Default is <code>10</code>.
- * 
+ *
  * <li><code>index.merge.policy.max_merge_at_once_explicit</code>:
- * 
+ *
  *     Maximum number of segments to be merged at a time, during optimize or
  *     expungeDeletes. Default is <code>30</code>.
- * 
+ *
  * <li><code>index.merge.policy.max_merged_segment</code>:
- * 
+ *
  *     Maximum sized segment to produce during normal merging (not explicit
  *     optimize). This setting is approximate: the estimate of the merged segment
  *     size is made by summing sizes of to-be-merged segments (compensating for
  *     percent deleted docs). Default is <code>5gb</code>.
- * 
+ *
  * <li><code>index.merge.policy.segments_per_tier</code>:
- * 
+ *
  *     Sets the allowed number of segments per tier. Smaller values mean more
  *     merging but fewer segments. Default is <code>10</code>. Note, this value needs to be
  *     &gt;= than the <code>max_merge_at_once</code> otherwise you'll force too many merges to
  *     occur.
- * 
+ *
  * <li><code>index.merge.policy.reclaim_deletes_weight</code>:
- * 
+ *
  *     Controls how aggressively merges that reclaim more deletions are favored.
  *     Higher values favor selecting merges that reclaim deletions. A value of
  *     <code>0.0</code> means deletions don't impact merge selection. Defaults to <code>2.0</code>.
  * </ul>
- * 
+ *
  * <p>
  * For normal merging, the policy first computes a "budget" of how many
  * segments are allowed to be in the index. If the index is over-budget,
@@ -98,13 +98,13 @@ import org.elasticsearch.index.settings.IndexSettingsService;
  * smallest seg), total merge size and pct deletes reclaimed, so that
  * merges with lower skew, smaller size and those reclaiming more deletes,
  * are favored.
- * 
+ *
  * <p>
  * If a merge will produce a segment that's larger than
  * <code>max_merged_segment</code> then the policy will merge fewer segments (down to
  * 1 at once, if that one has deletions) to keep the segment size under
  * budget.
- * 
+ *
  * <p>
  * Note, this can mean that for large shards that holds many gigabytes of
  * data, the default of <code>max_merged_segment</code> (<code>5gb</code>) can cause for many
@@ -113,7 +113,6 @@ import org.elasticsearch.index.settings.IndexSettingsService;
  * possibly either increase the <code>max_merged_segment</code> or issue an optimize
  * call for the index (try and aim to issue it on a low traffic time).
  */
-
 public final class MergePolicyConfig implements IndexSettingsService.Listener{
     private final TieredMergePolicy mergePolicy = new TieredMergePolicy();
     private final ESLogger logger;
@@ -129,16 +128,34 @@ public final class MergePolicyConfig implements IndexSettingsService.Listener{
     public static final double          DEFAULT_RECLAIM_DELETES_WEIGHT      = 2.0d;
     public static final String          INDEX_COMPOUND_FORMAT               = "index.compound_format";
 
+    // When expungeDeletes is called, we only merge away a segment if its delete percentage is over this threshold. Default is 10.
     public static final String INDEX_MERGE_POLICY_EXPUNGE_DELETES_ALLOWED = "index.merge.policy.expunge_deletes_allowed";
+
+    // TODO 小于这个大小的 segment，优先被归并，默认值是2MB
+    // Segments smaller than this are "rounded up" to this size, i.e. treated as equal (floor) size for merge selection. This is to prevent frequent flushing of tiny segments, thus preventing a long tail in the index. Default is 2mb.
     public static final String INDEX_MERGE_POLICY_FLOOR_SEGMENT = "index.merge.policy.floor_segment";
+
+    // TODO 一次最多合并多少个segment，默认10个
+    // Maximum number of segments to be merged at a time during "normal" merging. Default is 10.
     public static final String INDEX_MERGE_POLICY_MAX_MERGE_AT_ONCE = "index.merge.policy.max_merge_at_once";
+
+    // TODO optimize or expungeDeletes时，一次最多合并多少个segments，默认30
+    // Maximum number of segments to be merged at a time, during optimize or expungeDeletes. Default is 30.
     public static final String INDEX_MERGE_POLICY_MAX_MERGE_AT_ONCE_EXPLICIT = "index.merge.policy.max_merge_at_once_explicit";
+
+    // TODO 大于这个值的segment不参与合并，默认为5GB
+    // Maximum sized segment to produce during normal merging (not explicit optimize). This setting is approximate:
+    // the estimate of the merged segment size is made by summing sizes of to-be-merged segments (compensating for percent deleted docs). Default is 5gb.
     public static final String INDEX_MERGE_POLICY_MAX_MERGED_SEGMENT = "index.merge.policy.max_merged_segment";
+    // Sets the allowed number of segments per tier. Smaller values mean more merging but fewer segments. Default is 10. Note, this value needs to be >= than the max_merge_at_once otherwise you'll force too many merges to occur.
     public static final String INDEX_MERGE_POLICY_SEGMENTS_PER_TIER = "index.merge.policy.segments_per_tier";
+    // Controls how aggressively merges that reclaim more deletions are favored. Higher values favor selecting merges that reclaim deletions. A value of 0.0 means deletions don't impact merge selection. Defaults to 2.0.
     public static final String INDEX_MERGE_POLICY_RECLAIM_DELETES_WEIGHT = "index.merge.policy.reclaim_deletes_weight";
+    // TODO 是否开启merge，默认true
     public static final String INDEX_MERGE_ENABLED = "index.merge.enabled";
 
 
+    // TODO Merge的配置文件
      public MergePolicyConfig(ESLogger logger, Settings indexSettings) {
         this.logger = logger;
         this.noCFSRatio = parseNoCFSRatio(indexSettings.get(INDEX_COMPOUND_FORMAT, Double.toString(TieredMergePolicy.DEFAULT_NO_CFS_RATIO)));

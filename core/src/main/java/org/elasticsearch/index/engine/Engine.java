@@ -164,14 +164,18 @@ public abstract class Engine implements Closeable {
     /** A throttling class that can be activated, causing the
      * {@code acquireThrottle} method to block on a lock when throttling
      * is enabled
+     *
+     *
+     * 可以激活的限制类，导致acquireThrottle方法在启用限制时阻止锁定
      */
     protected static final class IndexThrottle {
-
+        // TODO 一个空LOCK的空实现
         private static final ReleasableLock NOOP_LOCK = new ReleasableLock(new NoOpLock());
         private final ReleasableLock lockReference = new ReleasableLock(new ReentrantLock());
 
         private volatile ReleasableLock lock = NOOP_LOCK;
 
+        // TODO 获取锁，如果是NOOP_LOCK，则立马返回（不限流），如果是lockReference则需要 等待 获取到lock，以达到限流目的
         public Releasable acquireThrottle() {
             return lock.acquire();
         }
@@ -179,6 +183,7 @@ public abstract class Engine implements Closeable {
         /** Activate throttling, which switches the lock to be a real lock */
         public void activate() {
             assert lock == NOOP_LOCK : "throttling activated while already active";
+            // TODO 激活限流，原理看不太懂，这里使用了lockReference
             lock = lockReference;
         }
 

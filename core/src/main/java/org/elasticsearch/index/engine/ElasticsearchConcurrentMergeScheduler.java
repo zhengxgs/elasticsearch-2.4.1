@@ -40,8 +40,14 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * An extension to the {@link ConcurrentMergeScheduler} that provides tracking on merge times, total
- * and current merges.
+ * An extension to the {@link ConcurrentMergeScheduler} that provides tracking on merge times, total and current merges.
+ *
+ * TODO 继承自lucene的ConcurrentMergeScheduler类，用于记录当前merge。 merge时间，数量
+ *
+ * merge的作用：
+ * es每次都会创建一个小文件（segment），随着程序一直运行，segment越来越多，数据都分散在segment里，查询的时候就要从这些segment里挨个找一遍。
+ * 这样的查询效率就很慢了，举个例子，在一个文件里面找还是在N个文件里面找快？ 当然是一个文件里面找比较快。
+ * 当然，一个segment的大小也要做好控制，不然查询也会很慢。这些参数可以在类 #MergePolicyConfig# 这个类里可以查看到。
  */
 class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
 
@@ -74,6 +80,8 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
         return readOnlyOnGoingMerges;
     }
 
+    // TODO lucene触发调用merge方法
+
     @Override
     protected void doMerge(IndexWriter writer, MergePolicy.OneMerge merge) throws IOException {
         int totalNumDocs = merge.totalNumDocs();
@@ -90,12 +98,15 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
             logger.trace("merge [{}] starting..., merging [{}] segments, [{}] docs, [{}] size, into [{}] estimated_size", OneMergeHelper.getSegmentName(merge), merge.segments.size(), totalNumDocs, new ByteSizeValue(totalSizeInBytes), new ByteSizeValue(merge.estimatedMergeBytes));
         }
         try {
+            // TODO 获取要merge的数量，如果大于配置的segments则需要限流
             beforeMerge(onGoingMerge);
+            // 调用IndexWriter.merge方法进行merge操作
             super.doMerge(writer, merge);
         } finally {
             long tookMS = TimeValue.nsecToMSec(System.nanoTime() - timeNS);
 
             onGoingMerges.remove(onGoingMerge);
+            // 是否需要去掉限流
             afterMerge(onGoingMerge);
 
             currentMerges.dec();
