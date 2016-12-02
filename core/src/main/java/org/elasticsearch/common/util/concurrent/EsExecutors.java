@@ -66,6 +66,14 @@ public class EsExecutors {
         return executor;
     }
 
+    /**
+     * new ThreadPoolExecutor一个2^31大小的pool，5分钟空闲则销毁的线程池
+     * @param name
+     * @param keepAliveTime
+     * @param unit
+     * @param threadFactory
+     * @return
+     */
     public static EsThreadPoolExecutor newCached(String name, long keepAliveTime, TimeUnit unit, ThreadFactory threadFactory) {
         return new EsThreadPoolExecutor(name, 0, Integer.MAX_VALUE, keepAliveTime, unit, new SynchronousQueue<Runnable>(), threadFactory, new EsAbortPolicy());
     }
@@ -106,27 +114,24 @@ public class EsExecutors {
         return new EsThreadFactory(namePrefix);
     }
 
-    static class EsThreadFactory implements ThreadFactory {
-        final ThreadGroup group;
-        final AtomicInteger threadNumber = new AtomicInteger(1);
-        final String namePrefix;
+	static class EsThreadFactory implements ThreadFactory {
+		final ThreadGroup group;
+		final AtomicInteger threadNumber = new AtomicInteger(1);
+		final String namePrefix;
 
-        public EsThreadFactory(String namePrefix) {
-            this.namePrefix = namePrefix;
-            SecurityManager s = System.getSecurityManager();
-            group = (s != null) ? s.getThreadGroup() :
-                    Thread.currentThread().getThreadGroup();
-        }
+		public EsThreadFactory(String namePrefix) {
+			this.namePrefix = namePrefix;
+			SecurityManager s = System.getSecurityManager();
+			group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+		}
 
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(group, r,
-                    namePrefix + "[T#" + threadNumber.getAndIncrement() + "]",
-                    0);
-            t.setDaemon(true);
-            return t;
-        }
-    }
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread t = new Thread(group, r, namePrefix + "[T#" + threadNumber.getAndIncrement() + "]", 0);
+			t.setDaemon(true);
+			return t;
+		}
+	}
 
     /**
      * Cannot instantiate.

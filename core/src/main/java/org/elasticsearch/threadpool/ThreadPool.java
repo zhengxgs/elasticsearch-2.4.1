@@ -66,33 +66,56 @@ public class ThreadPool extends AbstractComponent {
      * index 处理索引请求
      * search 处理查询请求
      * bulk 处理批量请求
-     * flush 处理刷新请求 （可能有误）
-     * refresh 处理索引段合并请求（可能有误）
+     * flush 处理Translog刷新到磁盘
+     * refresh 处理索引刷新，从缓冲区刷到文件缓存
      */
     public static class Names {
-        public static final String SAME = "same";
+
+        // # fixed 类型
+        // 通用的操作，比如node的discovery
         public static final String GENERIC = "generic";
+        // 主要用作java client的执行
         public static final String LISTENER = "listener";
         public static final String GET = "get";
+        // 用作index或delete操作
         public static final String INDEX = "index";
         public static final String BULK = "bulk";
+        // 用作count或是search操作
         public static final String SEARCH = "search";
         public static final String SUGGEST = "suggest";
         public static final String PERCOLATE = "percolate";
-        public static final String MANAGEMENT = "management";
-        public static final String FLUSH = "flush";
-        public static final String REFRESH = "refresh";
-        public static final String WARMER = "warmer";
-        public static final String SNAPSHOT = "snapshot";
+        // 用作force_merge操作(2.1之前叫做optimize)
         public static final String FORCE_MERGE = "force_merge";
+
+
+        public static final String SAME = "same";
+        // 用作ES的管理，比如集群的管理
+        public static final String MANAGEMENT = "management";
+        // 用作flush操作
+        public static final String FLUSH = "flush";
+        // 用作refresh操作
+        public static final String REFRESH = "refresh";
+        // 用作index warm-up操作
+        public static final String WARMER = "warmer";
+        // 用作snapshot操作
+        public static final String SNAPSHOT = "snapshot";
+        // 用作fetch shard开始操作
         public static final String FETCH_SHARD_STARTED = "fetch_shard_started";
+        // 用作fetch shard存储操作
         public static final String FETCH_SHARD_STORE = "fetch_shard_store";
     }
 
+    /**
+     * TODO 线程池类型 【cached，direct，fixed，scaling】
+     */
     public enum ThreadPoolType {
+        // 没有限制的线程池
         CACHED("cached"),
+        // 直接运行，没有线程池
         DIRECT("direct"),
+        // 固定的线程池
         FIXED("fixed"),
+        // 可变大小的线程池
         SCALING("scaling");
 
         private final String type;
@@ -245,11 +268,13 @@ public class ThreadPool extends AbstractComponent {
             executors.put(executor.getKey(), build(executor.getKey(), groupSettings.get(executor.getKey()), executor.getValue()));
         }
 
+        // TODO 用户自己定义的线程池
         // Building custom thread pools
         for (Map.Entry<String, Settings> entry : groupSettings.entrySet()) {
             if (executors.containsKey(entry.getKey())) {
                 continue;
             }
+            // TODO 构建ExecutorHolder对象
             executors.put(entry.getKey(), build(entry.getKey(), entry.getValue(), Settings.EMPTY));
         }
 
@@ -290,6 +315,7 @@ public class ThreadPool extends AbstractComponent {
         return estimatedTimeThread.counter;
     }
 
+
     public ThreadPoolInfo info() {
         List<Info> infos = new ArrayList<>();
         for (ExecutorHolder holder : executors.values()) {
@@ -327,6 +353,7 @@ public class ThreadPool extends AbstractComponent {
             long completed = -1;
             if (holder.executor() instanceof ThreadPoolExecutor) {
                 ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) holder.executor();
+                // TODO 获取线程池信息方法
                 threads = threadPoolExecutor.getPoolSize();
                 queue = threadPoolExecutor.getQueue().size();
                 active = threadPoolExecutor.getActiveCount();
@@ -447,24 +474,32 @@ public class ThreadPool extends AbstractComponent {
         if (settings == null) {
             settings = Settings.Builder.EMPTY_SETTINGS;
         }
+        // 获取上一个ExecutorHolder的信息，如果不为空的话
         Info previousInfo = previousExecutorHolder != null ? previousExecutorHolder.info : null;
+        // 动态无法修改线程池类型
         String type = settings.get("type", previousInfo != null ? previousInfo.getThreadPoolType().getType() : defaultSettings.get("type"));
         ThreadPoolType threadPoolType = ThreadPoolType.fromType(type);
         ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(this.settings, name);
         if (ThreadPoolType.DIRECT == threadPoolType) {
             if (previousExecutorHolder != null) {
+                // TODO previousExecutorHolder不等于空，表示是修改线程池
                 logger.debug("updating thread_pool [{}], type [{}]", name, type);
             } else {
                 logger.debug("creating thread_pool [{}], type [{}]", name, type);
             }
+            // 这里就是封装了一下，里面没有用到pool，直接调用Runnable.run方法执行
             return new ExecutorHolder(DIRECT_EXECUTOR, new Info(name, threadPoolType));
         } else if (ThreadPoolType.CACHED == threadPoolType) {
             if (!Names.GENERIC.equals(name)) {
+                // 缓存线程池只用于generic线程池
                 throw new IllegalArgumentException("thread pool type cached is reserved only for the generic thread pool and can not be applied to [" + name + "]");
             }
+            // 缓存线程池keppAlive时间，默认5分钟
             TimeValue defaultKeepAlive = defaultSettings.getAsTime("keep_alive", timeValueMinutes(5));
             if (previousExecutorHolder != null) {
                 if (ThreadPoolType.CACHED == previousInfo.getThreadPoolType()) {
+                    // 如果是修改操作，就判断修改前的type是不是cached，如果是就判断待修改和修改前的是不是一致。
+                    // 如果是一致就直接返回上一个，这里只修改keepalive，因为cached类型没有min，max
                     TimeValue updatedKeepAlive = settings.getAsTime("keep_alive", previousInfo.getKeepAlive());
                     if (!previousInfo.getKeepAlive().equals(updatedKeepAlive)) {
                         logger.debug("updating thread_pool [{}], type [{}], keep_alive [{}]", name, type, updatedKeepAlive);
@@ -483,6 +518,7 @@ public class ThreadPool extends AbstractComponent {
             } else {
                 logger.debug("creating thread_pool [{}], type [{}], keep_alive [{}]", name, type, keepAlive);
             }
+            // new ThreadPoolExecutor一个2^31大小的pool，5分钟空闲则销毁的线程池
             Executor executor = EsExecutors.newCached(name, keepAlive.millis(), TimeUnit.MILLISECONDS, threadFactory);
             return new ExecutorHolder(executor, new Info(name, threadPoolType, -1, -1, keepAlive, null));
         } else if (ThreadPoolType.FIXED == threadPoolType) {
@@ -493,10 +529,12 @@ public class ThreadPool extends AbstractComponent {
                 if (ThreadPoolType.FIXED == previousInfo.getThreadPoolType()) {
                     SizeValue updatedQueueSize = getAsSizeOrUnbounded(settings, "capacity", getAsSizeOrUnbounded(settings, "queue", getAsSizeOrUnbounded(settings, "queue_size", previousInfo.getQueueSize())));
                     if (Objects.equals(previousInfo.getQueueSize(), updatedQueueSize)) {
+                        // 会对BULK和INDEX两种线程池判断是否设置的size大于可用cpu核数，如果是大于就返回可用的cpu核数
                         int updatedSize = applyHardSizeLimit(name, settings.getAsInt("size", previousInfo.getMax()));
                         if (previousInfo.getMax() != updatedSize) {
                             logger.debug("updating thread_pool [{}], type [{}], size [{}], queue_size [{}]", name, type, updatedSize, updatedQueueSize);
                             // if you think this code is crazy: that's because it is!
+                            // 这注释真逗，以下代码同时回修改CorePoolSize和MaximumPoolSize，注意以下修改的顺序，方法里会进行判断，maximumPoolSize < corePoolSize
                             if (updatedSize > previousInfo.getMax()) {
                                 ((EsThreadPoolExecutor) previousExecutorHolder.executor()).setMaximumPoolSize(updatedSize);
                                 ((EsThreadPoolExecutor) previousExecutorHolder.executor()).setCorePoolSize(updatedSize);
@@ -792,6 +830,9 @@ public class ThreadPool extends AbstractComponent {
         }
     }
 
+    /**
+     * 线程池信息，名字，类型，最大最小线程数，keepAlive，queueSize
+     */
     public static class Info implements Streamable, ToXContent {
 
         private String name;
