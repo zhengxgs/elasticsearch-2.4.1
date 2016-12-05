@@ -63,8 +63,11 @@ public class DanglingIndicesState extends AbstractComponent {
         if (nodeEnv.hasNodeFile() == false) {
             return;
         }
+        // TODO 如果提供的metadata已经存在了，就清除掉dangling的index
         cleanupAllocatedDangledIndices(metaData);
+        // TODO 找到新的dangling的index，并加入
         findNewAndAddDanglingIndices(metaData);
+        // TODO 将现在dangling中的index发送给master节点，用作allocation
         allocateDanglingIndices();
     }
 

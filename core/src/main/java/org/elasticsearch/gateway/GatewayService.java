@@ -46,7 +46,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- *
+ * TODO GatewayService实现了ClusterStateListener接口，clusterState changed时会触发clusterChanged方法
  */
 public class GatewayService extends AbstractLifecycleComponent<GatewayService> implements ClusterStateListener {
 
@@ -72,8 +72,9 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
     private final int recoverAfterMasterNodes;
     private final int expectedMasterNodes;
 
-
+    // 是否已经执行过恢复
     private final AtomicBoolean recovered = new AtomicBoolean();
+    // schedule是否已经执行过恢复
     private final AtomicBoolean scheduledRecovery = new AtomicBoolean();
 
     @Inject
@@ -94,10 +95,14 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
             defaultRecoverAfterTime = DEFAULT_RECOVER_AFTER_TIME_IF_EXPECTED_NODES_IS_SET;
         }
 
+        // TODO 多久后开始恢复，通过参数：gateway.recover_after_time控制，默认5分钟
         this.recoverAfterTime = this.settings.getAsTime("gateway.recover_after_time", defaultRecoverAfterTime);
+        // TODO 有多少个节点后开始恢复，参数：gateway.recover_after_nodes，默认-1
         this.recoverAfterNodes = this.settings.getAsInt("gateway.recover_after_nodes", -1);
+        // TODO 有多少个数据节点后开始恢复，参数：gateway.recover_after_data_nodes，默认-1
         this.recoverAfterDataNodes = this.settings.getAsInt("gateway.recover_after_data_nodes", -1);
         // default the recover after master nodes to the minimum master nodes in the discovery
+        // TODO 有多少个master节点才开始恢复，参数：gateway.recover_after_master_nodes，默认是discovery.zen.minimum_master_nodes控制，如果没有设置，则是-1
         this.recoverAfterMasterNodes = this.settings.getAsInt("gateway.recover_after_master_nodes", settings.getAsInt("discovery.zen.minimum_master_nodes", -1));
 
         // Add the not recovered as initial state block, we don't allow anything until
@@ -118,6 +123,7 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
     protected void doClose() {
     }
 
+    // TODO 集群状态更新的时候触发
     @Override
     public void clusterChanged(final ClusterChangedEvent event) {
         if (lifecycle.stoppedOrClosed()) {
@@ -126,16 +132,24 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
 
         final ClusterState state = event.state();
 
+        // TODO 本地节点是否是Master,如果不是Master直接返回，不做处理
         if (state.nodes().localNodeMaster() == false) {
             // not our job to recover
             return;
         }
+        // TODO 是否已经recovered过
         if (state.blocks().hasGlobalBlock(STATE_NOT_RECOVERED_BLOCK) == false) {
             // already recovered
             return;
         }
 
         DiscoveryNodes nodes = state.nodes();
+
+        // TODO 处理前会进行一些判断，条件都满足了才进行处理：
+        // 1. 是否有master
+        // 2. data节点+Master节点数量是否比设置的参数小
+        // 3. data节点数量是否比设置的参数小
+        // 4. master节点是否比设置的参数小
         if (state.blocks().hasGlobalBlock(discoveryService.getNoMasterBlock())) {
             logger.debug("not recovering from gateway, no master elected yet");
         } else if (recoverAfterNodes != -1 && (nodes.masterAndDataNodes().size()) < recoverAfterNodes) {
@@ -152,6 +166,7 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
                 enforceRecoverAfterTime = true;
                 reason = "recover_after_time was set to [" + recoverAfterTime + "]";
             } else {
+                // TODO 如果预先任意设置了一个值
                 // one of the expected is set, see if all of them meet the need, and ignore the timeout in this case
                 enforceRecoverAfterTime = false;
                 reason = "";
@@ -170,9 +185,15 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
         }
     }
 
+    /**
+     * TODO 执行恢复
+     * @param enforceRecoverAfterTime 强制执行恢复
+     * @param reason
+     */
     private void performStateRecovery(boolean enforceRecoverAfterTime, String reason) {
         final Gateway.GatewayStateRecoveredListener recoveryListener = new GatewayRecoveryListener();
 
+        // 如果recoverAfterTime不为空，表示需要等待一定的时间后才执行恢复操作，放到schedule中执行
         if (enforceRecoverAfterTime && recoverAfterTime != null) {
             if (scheduledRecovery.compareAndSet(false, true)) {
                 logger.info("delaying initial state recovery for [{}]. {}", recoverAfterTime, reason);
@@ -181,6 +202,7 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
                     public void run() {
                         if (recovered.compareAndSet(false, true)) {
                             logger.info("recover_after_time [{}] elapsed. performing state recovery...", recoverAfterTime);
+                            // 调用Gateway.performStateRecovery
                             gateway.performStateRecovery(recoveryListener);
                         }
                     }
@@ -206,6 +228,7 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
         }
     }
 
+    // TODO 恢复监听器，onSuccess方法中处理
     class GatewayRecoveryListener implements Gateway.GatewayStateRecoveredListener {
 
         @Override
@@ -217,6 +240,7 @@ public class GatewayService extends AbstractLifecycleComponent<GatewayService> i
                     assert currentState.metaData().indices().isEmpty();
 
                     // remove the block, since we recovered from gateway
+                    // 移除block状态
                     ClusterBlocks.Builder blocks = ClusterBlocks.builder()
                             .blocks(currentState.blocks())
                             .blocks(recoveredState.blocks())

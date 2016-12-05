@@ -87,6 +87,8 @@ public abstract class MetaDataStateFormat<T> {
     }
 
     /**
+     * TODO 将传入的状态写到本地文件，然后原子的移动到{prefix}{version}.st文件
+     *
      * Writes the given state to the given directories. The state is written to a
      * state directory ({@value #STATE_DIR_NAME}) underneath each of the given file locations and is created if it
      * doesn't exist. The state is serialized to a temporary file in that directory and is then atomically moved to

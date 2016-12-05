@@ -116,6 +116,7 @@ public class GatewayMetaState extends AbstractComponent implements ClusterStateL
 
         boolean success = true;
         // write the state if this node is a master eligible node or if it is a data node and has shards allocated on it
+        // TODO 本地节点是 masterNode 或者是 dataNode节点
         if (state.nodes().localNode().masterNode() || state.nodes().localNode().dataNode()) {
             if (previousMetaData == null) {
                 try {
@@ -125,11 +126,13 @@ public class GatewayMetaState extends AbstractComponent implements ClusterStateL
                     // updated it will therefore not be written in case the list of previouslyWrittenIndices is empty (because state
                     // persistence was disabled or the node was restarted), see getRelevantIndicesOnDataOnlyNode().
                     // we therefore have to check here if we have shards on disk and add their indices to the previouslyWrittenIndices list
+                    // TODO 只是数据节点
                     if (isDataOnlyNode(state)) {
                         ImmutableSet.Builder<String> previouslyWrittenIndicesBuilder = ImmutableSet.builder();
                         for (IndexMetaData indexMetaData : newMetaData) {
                             IndexMetaData indexMetaDataOnDisk = null;
                             if (indexMetaData.getState().equals(IndexMetaData.State.CLOSE)) {
+                                // TODO 从磁盘文件获取index的metaData
                                 indexMetaDataOnDisk = metaStateService.loadIndexState(indexMetaData.getIndex());
                             }
                             if (indexMetaDataOnDisk != null) {
@@ -164,6 +167,10 @@ public class GatewayMetaState extends AbstractComponent implements ClusterStateL
             }
         }
 
+        // TODO 处理存在磁盘的index，但没有存在集群的index，将他们重新引入集群，这里需要从三步来走：
+        // 1、如果提供的metadata已经存在了，就清除掉dangling的index；
+        // 2、找到新的dangling的index，并加入；
+        // 3、将现在dangling中的index发送给master节点，用作allocation：
         danglingIndicesState.processDanglingIndices(newMetaData);
 
         if (success) {

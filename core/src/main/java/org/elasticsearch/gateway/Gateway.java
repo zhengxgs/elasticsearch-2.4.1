@@ -35,7 +35,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import java.nio.file.Path;
 
 /**
- *
+ * TODO 实现ClusterStateListener接口，当集群状态变化的时候会触发相应的方法（clusterChanged）
  */
 public class Gateway extends AbstractComponent implements ClusterStateListener {
 
@@ -69,11 +69,11 @@ public class Gateway extends AbstractComponent implements ClusterStateListener {
     public void performStateRecovery(final GatewayStateRecoveredListener listener) throws GatewayException {
         ObjectHashSet<String> nodesIds = new ObjectHashSet<>(clusterService.state().nodes().masterNodes().keys());
         logger.trace("performing state recovery from {}", nodesIds);
+        // TODO 请求nodesIds的节点状态
         TransportNodesListGatewayMetaState.NodesGatewayMetaState nodesState = listGatewayMetaState.list(nodesIds.toArray(String.class), null).actionGet();
 
-
+        // 必须分配数量
         int requiredAllocation = calcRequiredAllocations(this.initialMeta, nodesIds.size());
-
 
         if (nodesState.failures().length > 0) {
             for (FailedNodeException failedNodeException : nodesState.failures()) {
@@ -92,12 +92,14 @@ public class Gateway extends AbstractComponent implements ClusterStateListener {
             if (electedGlobalState == null) {
                 electedGlobalState = nodeState.metaData();
             } else if (nodeState.metaData().version() > electedGlobalState.version()) {
+                // TODO 遍历nodeState，获取metaData版本最新的
                 electedGlobalState = nodeState.metaData();
             }
             for (ObjectCursor<IndexMetaData> cursor : nodeState.metaData().indices().values()) {
                 indices.addTo(cursor.value.getIndex(), 1);
             }
         }
+        // 找到的metaData数量必须大于 分配的数量
         if (found < requiredAllocation) {
             listener.onFailure("found [" + found + "] metadata states, required [" + requiredAllocation + "]");
             return;
@@ -143,6 +145,7 @@ public class Gateway extends AbstractComponent implements ClusterStateListener {
     protected int calcRequiredAllocations(final String setting, final int nodeCount) {
         int requiredAllocation = 1;
         try {
+            // TODO 根据一致性判断分配数量
             if ("quorum".equals(setting)) {
                 if (nodeCount > 2) {
                     requiredAllocation = (nodeCount / 2) + 1;
