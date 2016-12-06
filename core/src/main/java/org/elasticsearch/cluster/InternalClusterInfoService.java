@@ -65,9 +65,13 @@ import java.util.concurrent.TimeUnit;
  *
  * Every time the timer runs, gathers information about the disk usage and
  * shard sizes across the cluster.
+ *
+ * TODO InternalClusterInfoService提供了ClusterInfoService接口，在定时器上定时更新，这个值可以动态修改，cluster.info.update.interval（默认30秒）
+ * InternalClusterInfoService只运行在master上，监听数据节点数量变化，如果有添加节点，则提交ClusterInfoUpdateJob任务，每次定时器运行时收集分片大小和集群中的磁盘使用情况。
  */
 public class InternalClusterInfoService extends AbstractComponent implements ClusterInfoService, LocalNodeMasterListener, ClusterStateListener {
 
+    // TODO 探测时间间隔
     public static final String INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL = "cluster.info.update.interval";
     public static final String INTERNAL_CLUSTER_INFO_TIMEOUT = "cluster.info.update.timeout";
 
@@ -397,6 +401,7 @@ public class InternalClusterInfoService extends AbstractComponent implements Clu
         ClusterInfo clusterInfo = getClusterInfo();
         for (Listener l : listeners) {
             try {
+                // TODO 调用DiskThresholdDecider.onNewInfo方法
                 l.onNewInfo(clusterInfo);
             } catch (Exception e) {
                 logger.info("Failed executing ClusterInfoService listener", e);
@@ -405,6 +410,7 @@ public class InternalClusterInfoService extends AbstractComponent implements Clu
         return clusterInfo;
     }
 
+    // TODO build 分片信息，分片大小
     static void buildShardLevelInfo(ESLogger logger, ShardStats[] stats, HashMap<String, Long> newShardSizes, HashMap<ShardRouting, String> newShardRoutingToDataPath, ClusterState state) {
         MetaData meta = state.getMetaData();
         for (ShardStats s : stats) {
@@ -427,6 +433,7 @@ public class InternalClusterInfoService extends AbstractComponent implements Clu
         }
     }
 
+    // TODO 填充每个节点硬盘使用情况
     static void fillDiskUsagePerNode(ESLogger logger, NodeStats[] nodeStatsArray, Map<String, DiskUsage> newLeastAvaiableUsages, Map<String, DiskUsage> newMostAvaiableUsages) {
         for (NodeStats nodeStats : nodeStatsArray) {
             if (nodeStats.getFs() == null) {

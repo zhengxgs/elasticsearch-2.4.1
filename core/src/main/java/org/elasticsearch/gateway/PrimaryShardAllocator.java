@@ -60,6 +60,7 @@ public abstract class PrimaryShardAllocator extends AbstractComponent {
         final RoutingNodes routingNodes = allocation.routingNodes();
         final MetaData metaData = routingNodes.metaData();
 
+        // TODO 获取所有unassigned信息进行遍历
         final RoutingNodes.UnassignedShards.UnassignedIterator unassignedIterator = routingNodes.unassigned().iterator();
         while (unassignedIterator.hasNext()) {
             ShardRouting shard = unassignedIterator.next();
@@ -68,6 +69,7 @@ public abstract class PrimaryShardAllocator extends AbstractComponent {
                 continue;
             }
 
+            // 获取shard状态，shard中没有数据则禁止分配
             AsyncShardFetch.FetchResult<TransportNodesListGatewayStartedShards.NodeGatewayStartedShards> shardState = fetchData(shard, allocation);
             if (shardState.hasData() == false) {
                 logger.trace("{}: ignoring allocation, still fetching shard started state", shard);
@@ -93,6 +95,7 @@ public abstract class PrimaryShardAllocator extends AbstractComponent {
                 continue;
             }
 
+            // TODO 获取所有可allocate的节点
             NodesToAllocate nodesToAllocate = buildNodesToAllocate(shard, allocation, nodesAndVersions);
             if (nodesToAllocate.yesNodes.isEmpty() == false) {
                 DiscoveryNode node = nodesToAllocate.yesNodes.get(0);
@@ -165,6 +168,7 @@ public abstract class PrimaryShardAllocator extends AbstractComponent {
 
     /**
      * Based on the nodes and versions, build the list of yes/no/throttle nodes that the shard applies to.
+     * 根据分配策略获取可allocate的node
      */
     private NodesToAllocate buildNodesToAllocate(ShardRouting shard, RoutingAllocation allocation, NodesAndVersions nodesAndVersions) {
         List<DiscoveryNode> yesNodes = new ArrayList<>();
@@ -176,6 +180,7 @@ public abstract class PrimaryShardAllocator extends AbstractComponent {
                 continue;
             }
 
+            // 根据不同策略，获取throttledNodes，noNodes，yesNodes
             Decision decision = allocation.deciders().canAllocate(shard, node, allocation);
             if (decision.type() == Decision.Type.THROTTLE) {
                 throttledNodes.add(discoNode);

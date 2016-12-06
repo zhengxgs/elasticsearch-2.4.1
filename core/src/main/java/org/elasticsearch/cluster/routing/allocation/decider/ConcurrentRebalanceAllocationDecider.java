@@ -36,11 +36,15 @@ import org.elasticsearch.node.settings.NodeSettingsService;
  * <tt>cluster.routing.allocation.cluster_concurrent_rebalance</tt>. Iff this
  * setting is set to <tt>-1</tt> the number of concurrent re-balance operations
  * are unlimited.
+ *
+ * TODO 类似ClusterRebalanceAllocationDecider这个分配策略，这个策略控制rebalance操作的并发数。默认：2
+ * rebalance操作可以在集群update api中控制，如果设置为-1，那么并发数量为不限制。
  */
 public class ConcurrentRebalanceAllocationDecider extends AllocationDecider {
 
     public static final String NAME = "concurrent_rebalance";
 
+    // TODO 控制集群rebalance并发数，默认：2
     public static final String CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE = "cluster.routing.allocation.cluster_concurrent_rebalance";
 
     class ApplySettings implements NodeSettingsService.Listener {
@@ -67,8 +71,10 @@ public class ConcurrentRebalanceAllocationDecider extends AllocationDecider {
     @Override
     public Decision canRebalance(ShardRouting shardRouting, RoutingAllocation allocation) {
         if (clusterConcurrentRebalance == -1) {
+            // 使用当前这个分配策略，设置为-1，任意rebalances，不限制
             return allocation.decision(Decision.YES, NAME, "all concurrent rebalances are allowed");
         }
+        // rebalances数量太多
         if (allocation.routingNodes().getRelocatingShardCount() >= clusterConcurrentRebalance) {
             return allocation.decision(Decision.NO, NAME, "too man concurrent rebalances [%d], limit: [%d]",
                     allocation.routingNodes().getRelocatingShardCount(), clusterConcurrentRebalance);

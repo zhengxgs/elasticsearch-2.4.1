@@ -42,6 +42,8 @@ public class UnassignedInfo implements ToXContent, Writeable<UnassignedInfo> {
 
     public static final FormatDateTimeFormatter DATE_TIME_FORMATTER = Joda.forPattern("dateOptionalTime");
 
+    // TODO index.unassigned.node_left.delayed_timeout用于控制Node离开集群后unassigned的shard需要延时多久才分配，默认是1分钟
+    // 为了避免，Node离开节点后很快又加入到集群需要的网络开销。所以当有unassigned产生时，会记录当前时间作为unassignedShardsAllocatedTimestamp
     public static final String INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING = "index.unassigned.node_left.delayed_timeout";
     private static final TimeValue DEFAULT_DELAYED_NODE_LEFT_TIMEOUT = TimeValue.timeValueMinutes(1);
 
@@ -105,6 +107,7 @@ public class UnassignedInfo implements ToXContent, Writeable<UnassignedInfo> {
     private final Reason reason;
     private final long unassignedTimeMillis; // used for display and log messages, in milliseconds
     private final long unassignedTimeNanos; // in nanoseconds, used to calculate delay for delayed shard allocation
+    // TODO 延迟多长时间才重新分配，0表示没有延迟
     private volatile long lastComputedLeftDelayNanos = 0l; // how long to delay shard allocation, not serialized (always positive, 0 means no delay)
     private final String message;
     private final Throwable failure;
@@ -215,6 +218,7 @@ public class UnassignedInfo implements ToXContent, Writeable<UnassignedInfo> {
         if (reason != Reason.NODE_LEFT) {
             return 0;
         }
+        // TODO 获取配置文件中的延时时间，默认1分钟
         TimeValue delayTimeout = indexSettings.getAsTime(INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING, settings.getAsTime(INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING, DEFAULT_DELAYED_NODE_LEFT_TIMEOUT));
         return Math.max(0l, delayTimeout.nanos());
     }
@@ -266,16 +270,21 @@ public class UnassignedInfo implements ToXContent, Writeable<UnassignedInfo> {
      */
     public static long findSmallestDelayedAllocationSettingNanos(Settings settings, ClusterState state) {
         long minDelaySetting = Long.MAX_VALUE;
+
+        // TODO 查找所有unassigned状态的shard
         for (ShardRouting shard : state.routingTable().shardsWithState(ShardRoutingState.UNASSIGNED)) {
             if (shard.primary() == false) {
                 IndexMetaData indexMetaData = state.metaData().index(shard.getIndex());
+                // 有延时
                 boolean delayed = shard.unassignedInfo().getLastComputedLeftDelayNanos() > 0;
+                // 获取setting配置文件中设置的延时参数
                 long delayTimeoutSetting = shard.unassignedInfo().getAllocationDelayTimeoutSettingNanos(settings, indexMetaData.getSettings());
                 if (delayed && delayTimeoutSetting > 0 && delayTimeoutSetting < minDelaySetting) {
                     minDelaySetting = delayTimeoutSetting;
                 }
             }
         }
+        // 0 表示无
         return minDelaySetting == Long.MAX_VALUE ? 0l : minDelaySetting;
     }
 

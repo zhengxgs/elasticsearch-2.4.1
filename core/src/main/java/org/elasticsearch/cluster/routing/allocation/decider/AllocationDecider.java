@@ -27,6 +27,9 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 
 /**
+ * 分配策略基类
+ * TODO AllocationDecider是一个抽象基类，允许在每个节点基础上进行动态的集群或索引的碎片分配决策。
+ *
  * {@link AllocationDecider} is an abstract base class that allows to make
  * dynamic cluster- or index-wide shard allocation decisions on a per-node
  * basis.
@@ -42,6 +45,8 @@ public abstract class AllocationDecider extends AbstractComponent {
     }
 
     /**
+     * 给定的shard routing是否可以rebalance
+     *
      * Returns a {@link Decision} whether the given shard routing can be
      * re-balanced to the given allocation. The default is
      * {@link Decision#ALWAYS}.
@@ -51,6 +56,8 @@ public abstract class AllocationDecider extends AbstractComponent {
     }
 
     /**
+     * 给定的shard routing是否可以分配到指定的node
+     *
      * Returns a {@link Decision} whether the given shard routing can be
      * allocated on the given node. The default is {@link Decision#ALWAYS}.
      */
@@ -59,6 +66,8 @@ public abstract class AllocationDecider extends AbstractComponent {
     }
 
     /**
+     * 给定的shard routing是否可以继续保留在指定的node
+     *
      * Returns a {@link Decision} whether the given shard routing can be remain
      * on the given node. The default is {@link Decision#ALWAYS}.
      */

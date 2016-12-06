@@ -26,6 +26,8 @@ import org.elasticsearch.common.settings.Settings;
 
 /**
  * Only allow rebalancing when all shards are active within the shard replication group.
+ *
+ * TODO 当所有shard状态是active的时候才rebalancing操作
  */
 public class RebalanceOnlyWhenActiveAllocationDecider extends AllocationDecider {
 

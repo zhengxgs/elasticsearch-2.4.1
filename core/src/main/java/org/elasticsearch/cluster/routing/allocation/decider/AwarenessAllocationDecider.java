@@ -72,6 +72,10 @@ import java.util.Map;
  * <pre>
  * node.zone: zone1
  * </pre>
+ *
+ * TODO 控制节点分配，可控制节点分配到不同的zone，类似集群中里面的机器分组。
+ *
+ * 例如：高配的机器划一个zone，存放访问量高的，配置低的存放访问较少的 （可能理解有误）
  */
 public class AwarenessAllocationDecider extends AllocationDecider {
 

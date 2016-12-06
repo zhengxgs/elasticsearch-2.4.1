@@ -34,6 +34,8 @@ import java.util.List;
 /**
  * {@link ShardRouting} immutably encapsulates information about shard
  * routings like id, state, version, etc.
+ *
+ * shard路由信息
  */
 public final class ShardRouting implements Streamable, ToXContent {
 

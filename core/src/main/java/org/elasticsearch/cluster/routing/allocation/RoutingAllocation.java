@@ -38,11 +38,12 @@ import java.util.Set;
  * The {@link RoutingAllocation} keep the state of the current allocation
  * of shards and holds the {@link AllocationDeciders} which are responsible
  *  for the current routing state.
+ *  TODO RoutingAllocation保持当前分片的状态并保存负责当前路由状态的AllocationDecider。
  */
 public class RoutingAllocation {
 
     /**
-     * this class is used to describe results of a {@link RoutingAllocation}  
+     * this class is used to describe results of a {@link RoutingAllocation}
      */
     public static class Result {
 
@@ -65,7 +66,7 @@ public class RoutingAllocation {
 
         /**
          * Creates a new {@link RoutingAllocation.Result}
-         * 
+         *
          * @param changed a flag to determine whether the actual {@link RoutingTable} has been changed
          * @param routingTable the {@link RoutingTable} this Result references
          * @param explanations Explanation for the reroute actions
@@ -159,6 +160,8 @@ public class RoutingAllocation {
 
     /**
      * Get current routing nodes
+     *
+     * 获取当前路由节点
      * @return routing nodes
      */
     public RoutingNodes routingNodes() {

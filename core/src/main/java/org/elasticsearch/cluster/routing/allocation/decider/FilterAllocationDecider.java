@@ -56,17 +56,25 @@ import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.OpType.OR;
  * <li><tt>exclude</tt> - filters "prohibited" allocations.
  * If any <tt>exclude</tt> filters are set the allocation is denied if the index is in the set of <tt>exclude</tt> filters for the filtered node</li>
  * </ol>
+ *
+ * TODO 明确的设置shard可以或是不可以分配到某node上，可以通过动态的进行设置
  */
 public class FilterAllocationDecider extends AllocationDecider {
 
     public static final String NAME = "filter";
 
+    // TODO index级别，必须
     public static final String INDEX_ROUTING_REQUIRE_GROUP = "index.routing.allocation.require.";
+    // TODO index级别，包含
     public static final String INDEX_ROUTING_INCLUDE_GROUP = "index.routing.allocation.include.";
+    // TODO index级别，排除
     public static final String INDEX_ROUTING_EXCLUDE_GROUP = "index.routing.allocation.exclude.";
 
+    // TODO cluster级别，会把index级别的设置给覆盖掉
     public static final String CLUSTER_ROUTING_REQUIRE_GROUP = "cluster.routing.allocation.require.";
+    // TODO
     public static final String CLUSTER_ROUTING_INCLUDE_GROUP = "cluster.routing.allocation.include.";
+    // TODO
     public static final String CLUSTER_ROUTING_EXCLUDE_GROUP = "cluster.routing.allocation.exclude.";
 
     private volatile DiscoveryNodeFilters clusterRequireFilters;

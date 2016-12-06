@@ -39,6 +39,8 @@ import static com.google.common.collect.Maps.newHashMap;
 /**
  * {@link RoutingNodes} represents a copy the routing information contained in
  * the {@link ClusterState cluster state}.
+ *
+ * 路由信息副本
  */
 public class RoutingNodes implements Iterable<RoutingNode> {
 

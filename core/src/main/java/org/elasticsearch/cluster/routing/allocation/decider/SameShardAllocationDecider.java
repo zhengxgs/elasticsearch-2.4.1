@@ -40,6 +40,13 @@ import org.elasticsearch.common.settings.Settings;
  * <tt>host</tt>. Allocations of multiple copies of the same shard on the same
  * <tt>node</tt> are not allowed independently of this setting.
  * </p>
+ *
+ *
+ * TODO 防止分配同一个分片的多个实例（主分片和副本分片）到同一个node上。
+ *
+ * cluster.routing.allocation.same_shard.host参数控制开启检查，默认false。这个设置只有在同一个host上运行多个es实例才有用。
+ *
+ * 通过hostname 和 hostaddress进行判断
  */
 public class SameShardAllocationDecider extends AllocationDecider {
 

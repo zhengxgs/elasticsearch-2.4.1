@@ -63,6 +63,9 @@ import java.util.Set;
  *
  * <code>cluster.routing.allocation.disk.threshold_enabled</code> is used to
  * enable or disable this decider. It defaults to false (disabled).
+ *
+ * TODO 根据硬盘剩余空间来决定是否继续分配
+ *
  */
 public class DiskThresholdDecider extends AllocationDecider {
 
@@ -76,10 +79,18 @@ public class DiskThresholdDecider extends AllocationDecider {
     private volatile boolean enabled;
     private volatile TimeValue rerouteInterval;
 
+    // TODO 是否启用这个策略，默认true
     public static final String CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED = "cluster.routing.allocation.disk.threshold_enabled";
+
+    // 下面两个属性都可以设置百分比和设置具体的byte大小
+    // TODO 低于这个值的硬盘，新的分片不会分配到使用率高这个值的节点 默认值是：0.85（85%）
     public static final String CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK = "cluster.routing.allocation.disk.watermark.low";
+    // TODO 磁盘使用率高于这个值，不允许分片保留在这个节点，会触发该节点现存分片的数据rebalance挪到其他节点上 默认值是：0.90（90%）
     public static final String CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK = "cluster.routing.allocation.disk.watermark.high";
+
+    // TODO 默认true
     public static final String CLUSTER_ROUTING_ALLOCATION_INCLUDE_RELOCATIONS = "cluster.routing.allocation.disk.include_relocations";
+    // TODO 默认60秒
     public static final String CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL = "cluster.routing.allocation.disk.reroute_interval";
 
     class ApplySettings implements NodeSettingsService.Listener {
@@ -128,6 +139,8 @@ public class DiskThresholdDecider extends AllocationDecider {
      * Listens for a node to go over the high watermark and kicks off an empty
      * reroute if it does. Also responsible for logging about nodes that have
      * passed the disk watermarks
+     *
+     * TODO 用于监听节点磁盘，shard大小是否超过水位线
      */
     class DiskListener implements ClusterInfoService.Listener {
         private final Client client;
@@ -214,6 +227,7 @@ public class DiskThresholdDecider extends AllocationDecider {
                         }
                     }
                 }
+                // TODO 是否需要reroute
                 if (reroute) {
                     logger.info("rerouting shards: [{}]", explanation);
                     // Execute an empty reroute, but don't block on the response
@@ -251,6 +265,7 @@ public class DiskThresholdDecider extends AllocationDecider {
         this.includeRelocations = settings.getAsBoolean(CLUSTER_ROUTING_ALLOCATION_INCLUDE_RELOCATIONS, true);
         this.rerouteInterval = settings.getAsTime(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL, TimeValue.timeValueSeconds(60));
 
+        // TODO cluster.routing.allocation.disk.threshold_enabled 默认值是true
         this.enabled = settings.getAsBoolean(CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED, true);
         nodeSettingsService.addListener(new ApplySettings());
         infoService.addListener(new DiskListener(client));

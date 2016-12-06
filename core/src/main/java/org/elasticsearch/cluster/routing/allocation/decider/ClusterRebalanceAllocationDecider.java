@@ -45,6 +45,12 @@ import java.util.Locale;
  * <li><tt>always</tt> - Re-balancing is allowed once a shard replication group
  * is active</li>
  * </ul>
+ *
+ * TODO 根据集群中所有shard的状态（active）来控制rebalancing。
+ * 通过 cluster.routing.allocation.allow_rebalance 参数进行控制，这个参数接受以下值：
+ * 1. indices_primaries_active 所有主分片状态为active时才rebalancing操作
+ * 2. indices_all_active 所有分片，包含副本分片状态为active时才rebalancing操作（默认）
+ * 3. always 没有限制的rebalancing操作
  */
 public class ClusterRebalanceAllocationDecider extends AllocationDecider {
 
@@ -163,6 +169,7 @@ public class ClusterRebalanceAllocationDecider extends AllocationDecider {
             }
         }
         // type == Type.ALWAYS
+        // TODO 默认值是ALWAYS
         return allocation.decision(Decision.YES, NAME, "all shards are active");
     }
 }

@@ -65,6 +65,7 @@ public class AllocationDeciders extends AllocationDecider {
         return ret;
     }
 
+    // TODO 判断RoutingNode是否可以allocate
     @Override
     public Decision canAllocate(ShardRouting shardRouting, RoutingNode node, RoutingAllocation allocation) {
         if (allocation.shouldIgnoreShardForNode(shardRouting.shardId(), node.nodeId())) {
@@ -72,6 +73,7 @@ public class AllocationDeciders extends AllocationDecider {
         }
         Decision.Multi ret = new Decision.Multi();
         for (AllocationDecider allocationDecider : allocations) {
+            // 给定的shard routing是否可以分配到指定的node
             Decision decision = allocationDecider.canAllocate(shardRouting, node, allocation);
             // short track if a NO is returned.
             if (decision == Decision.NO) {

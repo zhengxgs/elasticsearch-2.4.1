@@ -32,7 +32,9 @@ import java.util.Locale;
 /**
  * This abstract class defining basic {@link Decision} used during shard
  * allocation process.
- * 
+ *
+ * 分配策略基类，用于分片分配
+ *
  * @see AllocationDecider
  */
 public abstract class Decision implements ToXContent {
@@ -40,10 +42,11 @@ public abstract class Decision implements ToXContent {
     public static final Decision ALWAYS = new Single(Type.YES);
     public static final Decision YES = new Single(Type.YES);
     public static final Decision NO = new Single(Type.NO);
+    // TODO 风门，限制
     public static final Decision THROTTLE = new Single(Type.THROTTLE);
 
     /**
-     * Creates a simple decision 
+     * Creates a simple decision
      * @param type {@link Type} of the decision
      * @param label label for the Decider that produced this decision
      * @param explanation explanation of the decision
@@ -94,8 +97,8 @@ public abstract class Decision implements ToXContent {
     }
 
     /**
-     * This enumeration defines the 
-     * possible types of decisions 
+     * 策略类型
+     * This enumeration defines the possible types of decisions
      */
     public static enum Type {
         YES,
@@ -160,7 +163,7 @@ public abstract class Decision implements ToXContent {
         }
 
         /**
-         * Creates a new {@link Single} decision of a given type 
+         * Creates a new {@link Single} decision of a given type
          * @param type {@link Type} of the decision
          */
         public Single(Type type) {
@@ -169,7 +172,7 @@ public abstract class Decision implements ToXContent {
 
         /**
          * Creates a new {@link Single} decision of a given type
-         *  
+         *
          * @param type {@link Type} of the decision
          * @param explanation An explanation of this {@link Decision}
          * @param explanationParams A set of additional parameters

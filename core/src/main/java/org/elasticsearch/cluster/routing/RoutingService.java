@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * is running on is the clusters master node this service will not perform any
  * actions.
  * </p>
+ * 监听集群状态，接收到ClusterChangedEvent时，将会验证集群状态，可能会更新路由表，修改操作只会在master节点进行操作。否则将不执行任何操作
  */
 public class RoutingService extends AbstractLifecycleComponent<RoutingService> implements ClusterStateListener {
 
@@ -112,6 +113,8 @@ public class RoutingService extends AbstractLifecycleComponent<RoutingService> i
                 assert nextDelay.nanos() > 0 : "next delay must be non 0 as minDelaySetting is [" + minDelaySetting + "]";
                 logger.info("delaying allocation for [{}] unassigned shards, next check in [{}]",
                         UnassignedInfo.getNumberOfDelayedUnassigned(event.state()), nextDelay);
+
+                // TODO 延时处理，通过schedule执行reroute方法
                 registeredNextDelayFuture = threadPool.schedule(nextDelay, ThreadPool.Names.SAME, new AbstractRunnable() {
                     @Override
                     protected void doRun() throws Exception {
@@ -142,6 +145,7 @@ public class RoutingService extends AbstractLifecycleComponent<RoutingService> i
             if (lifecycle.stopped()) {
                 return;
             }
+            // TODO 是否已经开始rerouting
             if (rerouting.compareAndSet(false, true) == false) {
                 logger.trace("already has pending reroute, ignoring {}", reason);
                 return;

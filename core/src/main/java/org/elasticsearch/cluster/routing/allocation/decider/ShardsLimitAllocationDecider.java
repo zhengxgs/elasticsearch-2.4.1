@@ -48,6 +48,8 @@ import org.elasticsearch.node.settings.NodeSettingsService;
  * Note: Reducing the number of shards per node via the index update API can
  * trigger relocation and significant additional load on the clusters nodes.
  * </p>
+ *
+ * TODO 限制shard的分配数量。注意：如果动态减小这个配置，会触发数据迁移和对集群节点产生额外的负载。
  */
 public class ShardsLimitAllocationDecider extends AllocationDecider {
 
@@ -58,11 +60,15 @@ public class ShardsLimitAllocationDecider extends AllocationDecider {
     /**
      * Controls the maximum number of shards per index on a single Elasticsearch
      * node. Negative values are interpreted as unlimited.
+     *
+     * 控制节点每个索引分配最多的shard数量，负数为无限制
      */
     public static final String INDEX_TOTAL_SHARDS_PER_NODE = "index.routing.allocation.total_shards_per_node";
     /**
      * Controls the maximum number of shards per node on a global level.
      * Negative values are interpreted as unlimited.
+     *
+     * 控制集群中每个节点分配最多的shard数量，负数为无限制
      */
     public static final String CLUSTER_TOTAL_SHARDS_PER_NODE = "cluster.routing.allocation.total_shards_per_node";
 

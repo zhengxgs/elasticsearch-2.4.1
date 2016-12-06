@@ -44,13 +44,19 @@ import org.elasticsearch.node.settings.NodeSettingsService;
  * will return {@link Decision#THROTTLE} as a hit to upstream logic to throttle
  * the allocation process to prevent overloading nodes due to too many concurrent recovery
  * processes.
+ *
+ * TODO 这个类用于recovery过程中，控制节点在恢复过程。
+ * 如果上面的阀值有一个被超过了，该allocation decider会返回THROTTLE，用以限制allocate的过程，以阻止太多的recovery导致node过载；
  */
 public class ThrottlingAllocationDecider extends AllocationDecider {
 
     public static final String NAME = "throttling";
 
+    // TODO recovery时同一个节点上允许同时恢复几个主分片，默认4个
     public static final String CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES = "cluster.routing.allocation.node_initial_primaries_recoveries";
+    // TODO 限制在同一个node上，除了主分片重启恢复以外其他shard做recovery的并发数，默认是 2 个
     public static final String CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES = "cluster.routing.allocation.node_concurrent_recoveries";
+    // TODO
     public static final String CLUSTER_ROUTING_ALLOCATION_CONCURRENT_RECOVERIES = "cluster.routing.allocation.concurrent_recoveries";
 
     public static final int DEFAULT_CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES = 2;

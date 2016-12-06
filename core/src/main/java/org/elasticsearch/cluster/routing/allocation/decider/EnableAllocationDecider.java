@@ -51,6 +51,8 @@ import java.util.Locale;
  *     <li> <code>ALL</code> - all shards are allowed to be balanced
  * </ul>
  *
+ * TODO 控制shard的分配和rebalancing
+ *
  * @see Rebalance
  * @see Allocation
  */
@@ -58,6 +60,7 @@ public class EnableAllocationDecider extends AllocationDecider implements NodeSe
 
     public static final String NAME = "enable";
 
+    // TODO 接受一下四个值：NONE，NEW_PRIMARIES，PRIMARIES，ALL 描述对应上面类注释，rebalance和allocation接受的值都是一样。
     public static final String CLUSTER_ROUTING_ALLOCATION_ENABLE = "cluster.routing.allocation.enable";
     public static final String INDEX_ROUTING_ALLOCATION_ENABLE = "index.routing.allocation.enable";
 
@@ -96,6 +99,7 @@ public class EnableAllocationDecider extends AllocationDecider implements NodeSe
             case NONE:
                 return allocation.decision(Decision.NO, NAME, "no allocations are allowed");
             case NEW_PRIMARIES:
+                // 判断主分片和是否刚创建的主分片
                 if (shardRouting.primary() && shardRouting.allocatedPostIndexCreate() == false) {
                     return allocation.decision(Decision.YES, NAME, "new primary allocations are allowed");
                 } else {

@@ -202,6 +202,9 @@ public class AllocationService extends AbstractComponent {
      * Reroutes the routing table based on the live nodes.
      * <p>
      * If the same instance of the routing table is returned, then no change has been made.
+     *
+     * 根据活动节点重新路由路由表。
+     * 如果返回了路由表的相同实例，则不进行任何更改。
      */
     public RoutingAllocation.Result reroute(ClusterState clusterState, String reason) {
         return reroute(clusterState, reason, false);
@@ -239,16 +242,21 @@ public class AllocationService extends AbstractComponent {
         }
     }
 
+    // TODO reroute操作
     private boolean reroute(RoutingAllocation allocation) {
         boolean changed = false;
         // first, clear from the shards any node id they used to belong to that is now dead
+        // 首先要清除掉要allocate之前所在的node，当然如果现在发现其活过来了的话，就不清除
         changed |= deassociateDeadNodes(allocation);
 
         // create a sorted list of from nodes with least number of shards to the maximum ones
+        // 其次将新的node加入到routingNodes中，这个是在有node加入时会执行的
         applyNewNodes(allocation);
 
         // elect primaries *before* allocating unassigned, so backups of primaries that failed
         // will be moved to primary state and not wait for primaries to be allocated and recovered (*from gateway*)
+        // 在分配之前会选举出primary，如果是primary failed，会从其replica中选出一个作为primary
+        // 大体逻辑是随机获取一个作为候选shard
         changed |= electPrimariesAndUnassignedDanglingReplicas(allocation);
 
         // now allocate all the unassigned to available nodes
@@ -359,6 +367,7 @@ public class AllocationService extends AbstractComponent {
             }
             changed = true;
             // now, go over all the shards routing on the node, and fail them
+            // 现在，转过节点上的所有分片使它们失败
             for (ShardRouting shardRouting : node.copyShards()) {
                 UnassignedInfo unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.NODE_LEFT, "node_left[" + node.nodeId() + "]", null,
                         allocation.getCurrentNanoTime(), System.currentTimeMillis());
@@ -430,6 +439,8 @@ public class AllocationService extends AbstractComponent {
     /**
      * Applies the relevant logic to handle a failed shard. Returns <tt>true</tt> if changes happened that
      * require relocation.
+     *
+     * 判断是否需要relocation操作，需要返回true
      */
     private boolean applyFailedShard(RoutingAllocation allocation, ShardRouting failedShard, boolean addToIgnoreList, UnassignedInfo unassignedInfo) {
         IndexRoutingTable indexRoutingTable = allocation.routingTable().index(failedShard.index());
