@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.elasticsearch.rest.RestStatus.*;
 
 /**
- *
+ * Rest核心控制类，存放各种方法的Handlers，调用dispatchRequest分发请求
  */
 public class RestController extends AbstractLifecycleComponent<RestController> {
 
@@ -111,6 +111,8 @@ public class RestController extends AbstractLifecycleComponent<RestController> {
 
     /**
      * Registers a rest handler to be executed when the provided method and path match the request.
+     *
+     * 在初始化时，BaseRestHandler子类在构造方法中调用，将相应的url的path以及处理handler加入到RestHandler集合中
      */
     public void registerHandler(RestRequest.Method method, String path, RestHandler handler) {
         PathTrie<RestHandler> handlers = getHandlersForMethod(method);

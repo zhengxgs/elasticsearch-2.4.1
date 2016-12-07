@@ -15,6 +15,8 @@ import java.util.*;
  * OrderedDownstreamChannelEvent objects are expected to be received for the correlating response objects.
  *
  * @author Christopher Hunt
+ *
+ * 有顺序的http处理器
  */
 public class HttpPipeliningHandler extends SimpleChannelHandler {
 

@@ -115,6 +115,7 @@ public abstract class SingleShardRequest<T extends SingleShardRequest> extends A
 
     /**
      * Controls if the operation will be executed on a separate thread when executed locally.
+     * 是否需要启用线程去执行
      */
     @SuppressWarnings("unchecked")
     public final T operationThreaded(boolean threadedOperation) {

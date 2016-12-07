@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /** Utility class to resolve the Lucene doc ID and version for a given uid. */
 public class Versions {
-
+    // TODO 用户未指定版本时未-3
     public static final long MATCH_ANY = -3L; // Version was not specified by the user
     public static final long NOT_FOUND = -1L;
 

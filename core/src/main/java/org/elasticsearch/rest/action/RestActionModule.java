@@ -132,6 +132,8 @@ import java.util.List;
  *
  */
 public class RestActionModule extends AbstractModule {
+
+    // restPluginsActions是一个包含通过plugin添加的restHandler
     private List<Class<? extends BaseRestHandler>> restPluginsActions = new ArrayList<>();
 
     public RestActionModule(List<Class<? extends BaseRestHandler>> restPluginsActions) {
@@ -144,6 +146,7 @@ public class RestActionModule extends AbstractModule {
             bind(restAction).asEagerSingleton();
         }
 
+        // 注入rest相关处理类
         bind(RestMainAction.class).asEagerSingleton();
 
         bind(RestNodesInfoAction.class).asEagerSingleton();
@@ -252,6 +255,7 @@ public class RestActionModule extends AbstractModule {
         bind(RestListTasksAction.class).asEagerSingleton();
         bind(RestCancelTasksAction.class).asEagerSingleton();
 
+        // TODO cat的初始化方式和其他不一样，继承自AbstractCatAction，公用同一个handleRequest方法。可能是因为cat的api都是以cat开头的原因
         // cat API
         Multibinder<AbstractCatAction> catActionMultibinder = Multibinder.newSetBinder(binder(), AbstractCatAction.class);
         catActionMultibinder.addBinding().to(RestAllocationAction.class).asEagerSingleton();

@@ -33,6 +33,7 @@ public final class Elasticsearch {
     public static void main(String[] args) throws StartupError {
         try {
             // TODO zhengxgs 启动时，需要指定command=start
+            // -Des.path.home=E:\桌面\git\elasticsearch-2.4.1\core
             Bootstrap.init(args);
         } catch (Throwable t) {
             // format exceptions to the console in a special way

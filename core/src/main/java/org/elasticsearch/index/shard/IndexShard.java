@@ -1035,6 +1035,7 @@ public class IndexShard extends AbstractIndexShardComponent {
                 state == IndexShardState.RELOCATED || state == IndexShardState.CLOSED;
     }
 
+    // TODO Shard是否允许读的状态，不允许时抛出异常IllegalIndexShardStateException
     public void readAllowed() throws IllegalIndexShardStateException {
         IndexShardState state = this.state; // one time volatile read
         if (readAllowedStates.contains(state) == false) {

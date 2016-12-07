@@ -507,6 +507,8 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
      * Read the Operation object from the given location. This method will try to read the given location from
      * the current or from the currently committing translog file. If the location is in a file that has already
      * been closed or even removed the method will return <code>null</code> instead.
+     *
+     * 尝试从当前或从当前提交的translogs文件中读取给定位置的doc，如果location关闭了，或者remove了就返回null
      */
     public Translog.Operation read(Location location) {
         try (ReleasableLock lock = readLock.acquire()) {
@@ -894,7 +896,9 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
     public static class Location implements Accountable, Comparable<Location> {
 
         public final long generation;
+        // TODO 文档的位置
         public final long translogLocation;
+        // TODO 文档的大小
         public final int size;
 
         Location(long generation, long translogLocation, int size) {

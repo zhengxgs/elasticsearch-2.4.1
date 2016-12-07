@@ -92,6 +92,8 @@ public final class Channels {
      * read from a file channel into a byte buffer, starting at a certain position.  An EOFException will be thrown if you
      * attempt to read beyond the end of file.
      *
+     * 从文件通道读取到字节缓冲区，从某个位置开始。 如果尝试读取超出文件末尾，将抛出EOFException。
+     *
      * @param channel         channel to read from
      * @param channelPosition position to read from
      * @param dest            destination {@link java.nio.ByteBuffer} to put data in

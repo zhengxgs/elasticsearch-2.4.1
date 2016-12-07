@@ -312,12 +312,16 @@ public class InternalEngine extends Engine {
     public GetResult get(Get get) throws EngineException {
         try (ReleasableLock lock = readLock.acquire()) {
             ensureOpen();
+            // TODO 实时读
             if (get.realtime()) {
+                // 返回一个版本号
                 VersionValue versionValue = versionMap.getUnderLock(get.uid().bytes());
                 if (versionValue != null) {
+                    // 这个delete()一直返回false...看不太懂额
                     if (versionValue.delete()) {
                         return GetResult.NOT_EXISTS;
                     }
+                    // 检查版本冲突，抛出异常
                     if (get.versionType().isVersionConflictForReads(versionValue.version(), get.version())) {
                         Uid uid = Uid.createUid(get.uid().text());
                         throw new VersionConflictEngineException(shardId, uid.type(), uid.id(), versionValue.version(), get.version());

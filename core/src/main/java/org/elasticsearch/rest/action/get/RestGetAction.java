@@ -37,25 +37,34 @@ import static org.elasticsearch.rest.RestStatus.NOT_FOUND;
 import static org.elasticsearch.rest.RestStatus.OK;
 
 /**
- *
+ * 处理REST get请求
  */
 public class RestGetAction extends BaseRestHandler {
 
     @Inject
     public RestGetAction(Settings settings, RestController controller, Client client) {
         super(settings, controller, client);
+        // TODO 初始化的时候，往RestController类中添加get方法的请求
         controller.registerHandler(GET, "/{index}/{type}/{id}", this);
     }
 
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel, final Client client) {
+
+        // 构建GetRequest请求对象,设置get请求所需要的参数
+        // index,type,id,routing,parent,preference,realtime等参数
         final GetRequest getRequest = new GetRequest(request.param("index"), request.param("type"), request.param("id"));
         getRequest.operationThreaded(true);
+        // TODO GET请求是实时的，不受refresh的影响
+        // 可控制是否在get操作前进行一次refresh操作,如果用这种方式来查询最新的记录，那是非常耗性能，这个应该可以说是个玩具选项，
+        // 可以通过preference参数，设置查询偏好，指定查询主分片
         getRequest.refresh(request.paramAsBoolean("refresh", getRequest.refresh()));
         getRequest.routing(request.param("routing"));  // order is important, set it after routing, so it will set the routing
         getRequest.parent(request.param("parent"));
         getRequest.preference(request.param("preference"));
         getRequest.realtime(request.paramAsBoolean("realtime", null));
+
+        // 由于get请求是实时读的，如果索引里面没有回去translog里面查找，如果get请求的字段是需要索引的时候才会生成的，那就会抛出异常（默认）
         getRequest.ignoreErrorsOnGeneratedFields(request.paramAsBoolean("ignore_errors_on_generated_fields", false));
 
         String sField = request.param("fields");

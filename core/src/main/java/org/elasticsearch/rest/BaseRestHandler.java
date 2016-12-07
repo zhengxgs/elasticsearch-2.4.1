@@ -35,6 +35,9 @@ import java.util.Set;
  * the transport requests executed by the associated client. While the context is fully copied over, not all the headers
  * are copied, but a selected few. It is possible to control what headers are copied over by registering them using
  * {@link org.elasticsearch.rest.RestController#registerRelevantHeaders(String...)}
+ *
+ * REST请求基类处理器
+ *
  */
 public abstract class BaseRestHandler extends AbstractComponent implements RestHandler {
 

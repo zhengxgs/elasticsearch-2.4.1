@@ -33,8 +33,9 @@ import java.util.regex.Pattern;
 /**
  * Configuration for Cross-Origin Resource Sharing (CORS).
  *
- * This class was lifted from the Netty project:
- *  https://github.com/netty/netty
+ * This class was lifted from the Netty project: https://github.com/netty/netty
+ *
+ * 跨源资源共享（CORS）配置。
  */
 public final class CorsConfig {
 

@@ -87,6 +87,7 @@ public class FetchSourceContext implements Streamable {
 
     /**
      * Should the document be transformed after the source is loaded?
+     * 从source加载后是否需要转换
      */
     public boolean transformSource() {
         return this.transformSource;

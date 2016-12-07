@@ -49,9 +49,9 @@ public class GetRequest extends SingleShardRequest<GetRequest> implements Realti
     private String type;
     private String id;
     private String routing;
-    private String preference;
-
     private String[] fields;
+
+    private String preference;
 
     private FetchSourceContext fetchSourceContext;
 

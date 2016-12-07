@@ -35,8 +35,8 @@ import org.junit.Test;
  */
 public class ElasticsearchClient {
 
-	public static final String CLUSTER_NAME = "elasticsearch-2.4";
-	public static final String HOST = "172.16.4.33";
+	public static final String CLUSTER_NAME = "elasticsearch-2.4-test";
+	public static final String HOST = "127.0.0.1";
 	public static final Integer PORT = 9300;
 
 	public static final String INDEX = "testindex";

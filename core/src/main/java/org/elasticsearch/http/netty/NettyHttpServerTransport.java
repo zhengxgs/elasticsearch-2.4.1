@@ -83,7 +83,7 @@ import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_SE
 import static org.elasticsearch.http.netty.cors.CorsHandler.ANY_ORIGIN;
 
 /**
- *
+ * netty http server
  */
 public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpServerTransport> implements HttpServerTransport {
 
@@ -91,7 +91,9 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         NettyUtils.setup();
     }
 
+    // 跨域资源
     public static final String SETTING_CORS_ENABLED = "http.cors.enabled";
+    // 使用kibana时，有可能出现跨域错误，将此参数设置为*
     public static final String SETTING_CORS_ALLOW_ORIGIN = "http.cors.allow-origin";
     public static final String SETTING_CORS_MAX_AGE = "http.cors.max-age";
     public static final String SETTING_CORS_ALLOW_METHODS = "http.cors.allow-methods";
@@ -154,6 +156,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     protected volatile ServerBootstrap serverBootstrap;
 
+    // publish_host
     protected volatile BoundTransportAddress boundAddress;
 
     protected volatile List<Channel> serverChannels = new ArrayList<>();
@@ -175,6 +178,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             System.setProperty("org.jboss.netty.epollBugWorkaround", "true");
         }
 
+        // TODO 内容大小参数 http.netty.max_content_length，http.max_content_length 默认100MB
         ByteSizeValue maxContentLength = settings.getAsBytesSize("http.netty.max_content_length", settings.getAsBytesSize("http.max_content_length", new ByteSizeValue(100, ByteSizeUnit.MB)));
         this.maxChunkSize = settings.getAsBytesSize("http.netty.max_chunk_size", settings.getAsBytesSize("http.max_chunk_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
         this.maxHeaderSize = settings.getAsBytesSize("http.netty.max_header_size", settings.getAsBytesSize("http.max_header_size", new ByteSizeValue(8, ByteSizeUnit.KB)));
@@ -184,10 +188,15 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         this.resetCookies = settings.getAsBoolean("http.netty.reset_cookies", settings.getAsBoolean("http.reset_cookies", false));
         this.maxCumulationBufferCapacity = settings.getAsBytesSize("http.netty.max_cumulation_buffer_capacity", null);
         this.maxCompositeBufferComponents = settings.getAsInt("http.netty.max_composite_buffer_components", -1);
+        // TODO netty worker线程数，默认获取当前服务器的可用cpu核数 * 2
         this.workerCount = settings.getAsInt("http.netty.worker_count", EsExecutors.boundedNumberOfProcessors(settings) * 2);
+        // TODO http.netty.http.blocking_server，network.tcp.blocking_server，network.tcp.blocking 是否使用阻塞IO模型，默认false，
         this.blockingServer = settings.getAsBoolean("http.netty.http.blocking_server", settings.getAsBoolean(TCP_BLOCKING_SERVER, settings.getAsBoolean(TCP_BLOCKING, false)));
+        // TODO http.netty.port，http.port 默认9200-9300
         this.port = settings.get("http.netty.port", settings.get("http.port", DEFAULT_PORT_RANGE));
+        // TODO http.netty.bind_host，http.bind_host 默认是http.host
         this.bindHosts = settings.getAsArray("http.netty.bind_host", settings.getAsArray("http.bind_host", settings.getAsArray("http.host", null)));
+        // TODO 发布host
         this.publishHosts = settings.getAsArray("http.netty.publish_host", settings.getAsArray("http.publish_host", settings.getAsArray("http.host", null)));
         this.tcpNoDelay = settings.get("http.netty.tcp_no_delay", settings.get(TCP_NO_DELAY, "true"));
         this.tcpKeepAlive = settings.get("http.netty.tcp_keep_alive", settings.get(TCP_KEEP_ALIVE, "true"));
@@ -218,6 +227,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         this.pipeliningMaxEvents = settings.getAsInt(SETTING_PIPELINING_MAX_EVENTS, DEFAULT_SETTING_PIPELINING_MAX_EVENTS);
         this.corsConfig = buildCorsConfig(settings);
 
+        // TODO 设置的内容大小超过Integer的最大值，重新设置为100MB
         // validate max content length
         if (maxContentLength.bytes() > Integer.MAX_VALUE) {
             logger.warn("maxContentLength[" + maxContentLength + "] set to high value, resetting it to [100mb]");
@@ -240,8 +250,10 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     @Override
     protected void doStart() {
+        // TODO 调用doStart方法进行启动，new ServerBootstrap
         this.serverOpenChannels = new OpenChannelsHandler(logger);
 
+        // 判断是否使用nio还是oio
         if (blockingServer) {
             serverBootstrap = new ServerBootstrap(new OioServerSocketChannelFactory(
                     Executors.newCachedThreadPool(daemonThreadFactory(settings, "http_server_boss")),
@@ -256,6 +268,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
         serverBootstrap.setPipelineFactory(configureServerChannelPipelineFactory());
 
+        // set tcp相关参数
         if (!"default".equals(tcpNoDelay)) {
             serverBootstrap.setOption("child.tcpNoDelay", Booleans.parseBoolean(tcpNoDelay, null));
         }
@@ -279,11 +292,13 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         // Bind and start to accept incoming connections.
         InetAddress hostAddresses[];
         try {
+            // TODO 解析hostAddress
             hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
         } catch (IOException e) {
             throw new BindHttpException("Failed to resolve host [" + Arrays.toString(bindHosts) + "]", e);
         }
 
+        // 返回已绑定的address
         List<InetSocketTransportAddress> boundAddresses = new ArrayList<>(hostAddresses.length);
         for (InetAddress address : hostAddresses) {
             boundAddresses.add(bindAddress(address));
@@ -376,6 +391,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             public boolean onPortNumber(int portNumber) {
                 try {
                     synchronized (serverChannels) {
+                        // TODO netty 绑定host port
                         Channel channel = serverBootstrap.bind(new InetSocketAddress(hostAddress, portNumber));
                         serverChannels.add(channel);
                         boundSocket.set((InetSocketAddress) channel.getLocalAddress());
@@ -447,6 +463,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         return corsConfig;
     }
 
+    // TODO 请求分发
     protected void dispatchRequest(RestRequest request, RestChannel channel) {
         httpServerAdapter.dispatchRequest(request, channel);
     }

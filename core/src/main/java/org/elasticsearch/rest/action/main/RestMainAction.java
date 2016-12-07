@@ -34,7 +34,7 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
 
 /**
- *
+ * 访问根目录处理器
  */
 public class RestMainAction extends BaseRestHandler {
 
@@ -48,6 +48,7 @@ public class RestMainAction extends BaseRestHandler {
         this.version = version;
         this.clusterName = clusterName;
         this.clusterService = clusterService;
+        // 添加根目录的处理器，支持GET方法和HEAD方法
         controller.registerHandler(GET, "/", this);
         controller.registerHandler(HEAD, "/", this);
     }

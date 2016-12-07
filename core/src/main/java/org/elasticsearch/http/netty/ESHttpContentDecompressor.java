@@ -25,6 +25,7 @@ import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
 import org.jboss.netty.handler.codec.http.HttpContentDecompressor;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 
+// TODO 处理压缩
 public class ESHttpContentDecompressor extends HttpContentDecompressor {
     private final boolean compression;
 

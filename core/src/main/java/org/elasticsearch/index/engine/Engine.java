@@ -249,7 +249,7 @@ public abstract class Engine implements Closeable {
         COMMIT_MISMATCH,
         PENDING_OPERATIONS
     }
-
+    // 获取EngineSearcher和Versions.DocIdAndVersion，包装成getResult返回
     final protected GetResult getFromSearcher(Get get) throws EngineException {
         final Searcher searcher = acquireSearcher("get");
         final Versions.DocIdAndVersion docIdAndVersion;

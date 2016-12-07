@@ -59,6 +59,7 @@ import java.util.concurrent.TimeUnit;
 import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 
 /**
+ * shard get service
  */
 public final class ShardGetService extends AbstractIndexShardComponent {
     private final MapperService mapperService;
@@ -79,13 +80,16 @@ public final class ShardGetService extends AbstractIndexShardComponent {
     }
 
 
+    // 获取result
     public GetResult get(String type, String id, String[] gFields, boolean realtime, long version, VersionType versionType, FetchSourceContext fetchSourceContext, boolean ignoreErrorsOnGeneratedFields) {
         currentMetric.inc();
         try {
             long now = System.nanoTime();
+            // TODO get doc
             GetResult getResult = innerGet(type, id, gFields, realtime, version, versionType, fetchSourceContext, ignoreErrorsOnGeneratedFields);
 
             if (getResult.isExists()) {
+                // 累加查询时间
                 existsMetric.inc(System.nanoTime() - now);
             } else {
                 missingMetric.inc(System.nanoTime() - now);
@@ -131,6 +135,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
 
     /**
      * decides what needs to be done based on the request input and always returns a valid non-null FetchSourceContext
+     * 根据RestGetAction类中封装的信息进行处理返回
      */
     private FetchSourceContext normalizeFetchSourceContent(@Nullable FetchSourceContext context, @Nullable String[] gFields) {
         if (context != null) {
@@ -140,17 +145,21 @@ public final class ShardGetService extends AbstractIndexShardComponent {
             return FetchSourceContext.FETCH_SOURCE;
         }
         for (String field : gFields) {
+            // 请求中指定了_source的
             if (SourceFieldMapper.NAME.equals(field)) {
                 return FetchSourceContext.FETCH_SOURCE;
             }
         }
+        // 不需要充_source中解析返回数据
         return FetchSourceContext.DO_NOT_FETCH_SOURCE;
     }
 
     private GetResult innerGet(String type, String id, String[] gFields, boolean realtime, long version, VersionType versionType, FetchSourceContext fetchSourceContext, boolean ignoreErrorsOnGeneratedFields) {
+        // 根据RestGetAction类中封装的信息进行处理返回
         fetchSourceContext = normalizeFetchSourceContent(fetchSourceContext, gFields);
 
         Engine.GetResult get = null;
+        // type is null
         if (type == null || type.equals("_all")) {
             for (String typeX : mapperService.types()) {
                 get = indexShard.get(new Engine.Get(realtime, new Term(UidFieldMapper.NAME, Uid.createUidAsBytes(typeX, id)))
@@ -170,6 +179,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
                 return new GetResult(shardId.index().name(), type, id, -1, false, null, null);
             }
         } else {
+            // type not null
             get = indexShard.get(new Engine.Get(realtime, new Term(UidFieldMapper.NAME, Uid.createUidAsBytes(type, id)))
                     .version(version).versionType(versionType));
             if (!get.exists()) {
@@ -178,6 +188,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
             }
         }
 
+        // TODO 取对应type的mapping信息，如果为空就返回为空
         DocumentMapper docMapper = mapperService.documentMapper(type);
         if (docMapper == null) {
             get.release();
@@ -325,6 +336,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
         }
     }
 
+    // TODO 从storedFields加载
     private GetResult innerGetLoadFromStoredFields(String type, String id, String[] gFields, FetchSourceContext fetchSourceContext, Engine.GetResult get, DocumentMapper docMapper, boolean ignoreErrorsOnGeneratedFields) {
         Map<String, GetField> fields = null;
         BytesReference source = null;
@@ -332,14 +344,18 @@ public final class ShardGetService extends AbstractIndexShardComponent {
         FieldsVisitor fieldVisitor = buildFieldsVisitors(gFields, fetchSourceContext);
         if (fieldVisitor != null) {
             try {
+                // 根据docId和version获取document，加载gFields里面设置的字段
                 docIdAndVersion.context.reader().document(docIdAndVersion.docId, fieldVisitor);
             } catch (IOException e) {
                 throw new ElasticsearchException("Failed to get type [" + type + "] and id [" + id + "]", e);
             }
             source = fieldVisitor.source();
 
+            // fields不为空 进行处理
             if (!fieldVisitor.fields().isEmpty()) {
+                // 处理field值类型，与fieldmapping里面的信息进行匹配
                 fieldVisitor.postProcess(docMapper);
+                // 封装返回值
                 fields = new HashMap<>(fieldVisitor.fields().size());
                 for (Map.Entry<String, List<Object>> entry : fieldVisitor.fields().entrySet()) {
                     fields.put(entry.getKey(), new GetField(entry.getKey(), entry.getValue()));
@@ -392,6 +408,7 @@ public final class ShardGetService extends AbstractIndexShardComponent {
         if (!fetchSourceContext.fetchSource()) {
             source = null;
         } else if (fetchSourceContext.transformSource() || fetchSourceContext.includes().length > 0 || fetchSourceContext.excludes().length > 0) {
+            // TODO 处理转换，includes和excludes的字段信息
             Map<String, Object> sourceAsMap;
             XContentType sourceContentType = null;
             // TODO: The source might parsed and available in the sourceLookup but that one uses unordered maps so different. Do we care?
@@ -399,8 +416,10 @@ public final class ShardGetService extends AbstractIndexShardComponent {
             sourceContentType = typeMapTuple.v1();
             sourceAsMap = typeMapTuple.v2();
             if (fetchSourceContext.transformSource()) {
+                // 是处理脚本？？ 疑问
                 sourceAsMap = docMapper.transformSourceAsMap(sourceAsMap);
             }
+            // 排除，包含includes和excludes的字段信息
             sourceAsMap = XContentMapValues.filter(sourceAsMap, fetchSourceContext.includes(), fetchSourceContext.excludes());
             try {
                 source = XContentFactory.contentBuilder(sourceContentType).map(sourceAsMap).bytes();

@@ -36,10 +36,11 @@ import static org.elasticsearch.common.unit.ByteSizeValue.parseBytesSizeValue;
 import static org.elasticsearch.common.unit.TimeValue.parseTimeValue;
 
 /**
- *
+ * rest请求抽象类, 子类：NettyHttpRequest
  */
 public abstract class RestRequest extends ContextAndHeaderHolder implements ToXContent.Params {
 
+    // 支持的http方法
     public enum Method {
         GET, POST, PUT, DELETE, OPTIONS, HEAD
     }
@@ -53,6 +54,7 @@ public abstract class RestRequest extends ContextAndHeaderHolder implements ToXC
 
     /**
      * The non decoded, raw path provided.
+     * 获取non decoded的原始路径
      */
     public abstract String rawPath();
 

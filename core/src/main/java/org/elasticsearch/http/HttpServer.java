@@ -88,6 +88,9 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
         transport.httpServerAdapter(new Dispatcher(this));
     }
 
+    /**
+     * 分发http请求
+     */
     static class Dispatcher implements HttpServerAdapter {
 
         private final HttpServer server;
@@ -130,8 +133,10 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
         return transport.stats();
     }
 
+    // TODO 请求调度方法
     public void internalDispatchRequest(final RestRequest request, final RestChannel channel) {
         String rawPath = request.rawPath();
+        // rawPath 请求uri，判断是否已_plugin开头，如果是用于处理head，bigdesk这些插件
         if (rawPath.startsWith("/_plugin/")) {
             RestFilterChain filterChain = restController.filterChain(pluginSiteFilter);
             filterChain.continueProcessing(request, channel);
@@ -150,6 +155,7 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
             }
             // iff we could reserve bytes for the request we need to send the response also over this channel
             responseChannel = new ResourceHandlingHttpChannel(channel, circuitBreakerService);
+            // 分发请求
             restController.dispatchRequest(request, responseChannel);
         } catch (Throwable t) {
             restController.sendErrorResponse(request, responseChannel, t);
@@ -181,8 +187,10 @@ public class HttpServer extends AbstractLifecycleComponent<HttpServer> {
         }
     }
 
+    // TODO 处理plugin请求
     void handlePluginSite(RestRequest request, RestChannel channel) throws IOException {
         if (disableSites) {
+            // http.disable_sites 如果禁用了，处理的时候直接返回403响应
             channel.sendResponse(new BytesRestResponse(FORBIDDEN));
             return;
         }

@@ -84,8 +84,11 @@ import java.util.Set;
  * set injection will fail.
  *
  * @author jessewilson@google.com (Jesse Wilson)
+ *
+ * 一个API单独绑定多个值
  */
 public abstract class Multibinder<T> {
+
     private Multibinder() {
     }
 

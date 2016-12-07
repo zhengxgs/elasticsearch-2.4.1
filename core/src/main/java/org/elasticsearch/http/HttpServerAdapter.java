@@ -23,7 +23,7 @@ import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 
 /**
- *
+ * http server适配接口，Dispatcher是他的实现类
  */
 public interface HttpServerAdapter {
 

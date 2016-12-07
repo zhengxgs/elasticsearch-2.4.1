@@ -134,6 +134,14 @@ public class XContentMapValues {
         return null;
     }
 
+    /**
+     * 处理includes和excludes
+     *
+     * @param map
+     * @param includes
+     * @param excludes
+     * @return
+     */
     public static Map<String, Object> filter(Map<String, Object> map, String[] includes, String[] excludes) {
         Map<String, Object> result = Maps.newHashMap();
         filter(map, result, includes == null ? Strings.EMPTY_ARRAY : includes, excludes == null ? Strings.EMPTY_ARRAY : excludes, new StringBuilder());
@@ -142,6 +150,7 @@ public class XContentMapValues {
 
     private static void filter(Map<String, Object> map, Map<String, Object> into, String[] includes, String[] excludes, StringBuilder sb) {
         if (includes.length == 0 && excludes.length == 0) {
+            // 没有时原样返回
             into.putAll(map);
             return;
         }
@@ -151,9 +160,9 @@ public class XContentMapValues {
             if (sb.length() > 0) {
                 sb.append('.');
             }
+            // 加入首次进入for，mark=0，sb = key，正则匹配到需要排除的，就讲mark（0）设置到sb的长度，即sb = key的初始点
             sb.append(key);
             String path = sb.toString();
-
             if (Regex.simpleMatch(excludes, path)) {
                 sb.setLength(mark);
                 continue;
@@ -168,6 +177,7 @@ public class XContentMapValues {
                 for (String include : includes) {
                     // check for prefix matches as well to see if we need to zero in, something like: obj1.arr1.* or *.field
                     // note, this does not work well with middle matches, like obj1.*.obj3
+                    // TODO 处理 *前缀 例如  obj1.arr1.*  or  *.field
                     if (include.charAt(0) == '*') {
                         if (Regex.simpleMatch(include, path)) {
                             exactIncludeMatch = true;

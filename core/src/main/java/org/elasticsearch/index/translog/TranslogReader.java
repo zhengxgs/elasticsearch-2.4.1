@@ -75,6 +75,7 @@ public abstract class TranslogReader implements Closeable, Comparable<TranslogRe
 
     public Translog.Operation read(Translog.Location location) throws IOException {
         assert location.generation == generation : "read location's translog generation [" + location.generation + "] is not [" + generation + "]";
+        // 根据Translog.Location信息，分配一个size大小的buffer
         ByteBuffer buffer = ByteBuffer.allocate(location.size);
         try (BufferedChecksumStreamInput checksumStreamInput = checksummedStream(buffer, location.translogLocation, location.size, null)) {
             return read(checksumStreamInput);
@@ -121,6 +122,7 @@ public abstract class TranslogReader implements Closeable, Comparable<TranslogRe
         } else {
             buffer = ByteBuffer.allocate(opSize);
         }
+        // 设置读写索引为0
         buffer.clear();
         buffer.limit(opSize);
         readBytes(buffer, position);

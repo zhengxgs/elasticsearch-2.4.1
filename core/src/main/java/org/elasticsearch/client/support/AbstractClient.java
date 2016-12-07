@@ -353,8 +353,11 @@ public abstract class AbstractClient extends AbstractComponent implements Client
      * This is the single execution point of *all* clients.
      */
     @Override
-    public final <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void execute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
+    public final <Request extends ActionRequest, Response extends ActionResponse, RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>>
+        void execute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
+        // TODO 设置请求头
         headers.applyTo(request);
+        // wrap ThreadedActionListener
         listener = threadedWrapper.wrap(listener);
         doExecute(action, request, listener);
     }

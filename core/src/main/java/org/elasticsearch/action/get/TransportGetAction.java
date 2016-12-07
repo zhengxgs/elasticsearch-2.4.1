@@ -91,9 +91,11 @@ public class TransportGetAction extends TransportSingleShardAction<GetRequest, G
 
     @Override
     protected GetResponse shardOperation(GetRequest request, ShardId shardId) {
+        // TODO 获取相关的indexService，indexShard
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
 
+        // TODO 是否get之前进行一次refresh操作，如果你无聊的话
         if (request.refresh() && !request.realtime()) {
             indexShard.refresh("refresh_flag_get");
         }

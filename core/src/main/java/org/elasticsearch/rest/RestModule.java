@@ -32,8 +32,11 @@ import java.util.List;
 public class RestModule extends AbstractModule {
 
     private final Settings settings;
+
+    // TODO restPluginsActions是一个包含通过plugin添加的restHandler
     private List<Class<? extends BaseRestHandler>> restPluginsActions = new ArrayList<>();
 
+    // TODO 此方法被plugin中的代码调用，用于注册plugin的restHandler
     public void addRestAction(Class<? extends BaseRestHandler> restAction) {
         restPluginsActions.add(restAction);
     }
