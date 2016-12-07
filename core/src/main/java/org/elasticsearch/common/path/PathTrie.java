@@ -27,7 +27,6 @@ import java.util.Map;
 import static org.elasticsearch.common.collect.MapBuilder.newMapBuilder;
 
 /**
- *
  */
 public class PathTrie<T> {
 
@@ -169,7 +168,7 @@ public class PathTrie<T> {
             if (index == (path.length - 1)) {
                 return node.value;
             }
-
+            // TODO 递归查找children
             T res = node.retrieve(path, index + 1, params);
             if (res == null && !usedWildcard) {
                 node = children.get(wildcard);
@@ -209,10 +208,12 @@ public class PathTrie<T> {
 
     public T retrieve(String path, Map<String, String> params) {
         if (path.length() == 0) {
+            // TODO 没有输入path，返回RestMainAction进行处理
             return rootValue;
         }
         String[] strings = Strings.splitStringToArray(path, separator);
         if (strings.length == 0) {
+            // TODO 根目录，返回RestMainAction进行处理
             return rootValue;
         }
         int index = 0;
@@ -220,6 +221,9 @@ public class PathTrie<T> {
         if (strings.length > 0 && strings[0].isEmpty()) {
             index = 1;
         }
+
+        // GET /testindex/testindextype/AVjYDY1rleN50jAqFUjK
+        // 下表从0开始，例如顺序：index -> type -> id
         return root.retrieve(strings, index, params);
     }
 }

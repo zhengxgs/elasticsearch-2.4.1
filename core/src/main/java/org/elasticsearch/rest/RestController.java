@@ -212,6 +212,7 @@ public class RestController extends AbstractLifecycleComponent<RestController> {
         String path = getPath(request);
         PathTrie<RestHandler> handlers = getHandlersForMethod(request.method());
         if (handlers != null) {
+            // TODO 根据uri获取对应的RestHandler
             return handlers.retrieve(path, request.params());
         } else {
             return null;

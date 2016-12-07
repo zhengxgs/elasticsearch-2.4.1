@@ -78,6 +78,7 @@ public class TransportNodesInfoAction extends TransportNodesAction<NodesInfoRequ
 
     @Override
     protected NodeInfo nodeOperation(NodeInfoRequest nodeRequest) {
+        // TODO 通过请求信息 封装NodeInfo返回
         NodesInfoRequest request = nodeRequest.request;
         return nodeService.info(request.settings(), request.os(), request.process(), request.jvm(), request.threadPool(),
                 request.transport(), request.http(), request.plugins());
