@@ -48,16 +48,17 @@ import static org.elasticsearch.search.internal.InternalSearchResponse.readInter
  */
 public class SearchResponse extends ActionResponse implements StatusToXContent {
 
+    // TODO 里面包含了各种结果集，hit，agg，sugg等，是否超时等
     private InternalSearchResponse internalResponse;
 
     private String scrollId;
-
+    // TODO 总分片数
     private int totalShards;
-
+    // TODO 成功查询的分片数
     private int successfulShards;
-
+    // TODO 失败的查询信息
     private ShardSearchFailure[] shardFailures;
-
+    // TODO 查询耗时
     private long tookInMillis;
 
     public SearchResponse() {

@@ -112,7 +112,9 @@ abstract class AbstractSearchAsyncAction<FirstResult extends SearchPhaseResult> 
         firstResults = new AtomicArray<>(shardsIts.size());
     }
 
+    // TODO 开始进行分片处理
     public void start() {
+        // TODO 需要操作的总数
         if (expectedSuccessfulOps == 0) {
             // no search shards to search on, bail with empty response (it happens with search across _all with no indices around and consistent with broadcast operations)
             listener.onResponse(new SearchResponse(InternalSearchResponse.empty(), null, 0, 0, buildTookInMillis(), ShardSearchFailure.EMPTY_ARRAY));
@@ -136,11 +138,13 @@ abstract class AbstractSearchAsyncAction<FirstResult extends SearchPhaseResult> 
             // no more active shards... (we should not really get here, but just for safety)
             onFirstPhaseResult(shardIndex, null, null, shardIt, new NoShardAvailableActionException(shardIt.shardId()));
         } else {
+            // TODO 获取shard所在的node，发送ShardSearchTransportRequest请求到这个node上进行查询数据
             final DiscoveryNode node = nodes.get(shard.currentNodeId());
             if (node == null) {
                 onFirstPhaseResult(shardIndex, shard, null, shardIt, new NoShardAvailableActionException(shardIt.shardId()));
             } else {
                 String[] filteringAliases = indexNameExpressionResolver.filteringAliases(clusterState, shard.index(), request.indices());
+                // TODO 执行第一阶段，发送请求到shard所在的Node上进行查询
                 sendExecuteFirstPhase(node, internalSearchRequest(shard, shardsIts.size(), request, filteringAliases, startTime()), new ActionListener<FirstResult>() {
                     @Override
                     public void onResponse(FirstResult result) {

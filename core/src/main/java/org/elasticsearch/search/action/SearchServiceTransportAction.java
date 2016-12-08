@@ -361,7 +361,7 @@ public class SearchServiceTransportAction extends AbstractComponent {
             channel.sendResponse(result);
         }
     }
-
+    // TODO searchtype默认 一阶段处理类
     class SearchQueryTransportHandler extends TransportRequestHandler<ShardSearchTransportRequest> {
         @Override
         public void messageReceived(ShardSearchTransportRequest request, TransportChannel channel) throws Exception {

@@ -122,6 +122,7 @@ public class RequestHandlerRegistry<Request extends TransportRequest> {
         return handler.toString();
     }
 
+    // TODO TransportChannel装饰类，用于处理response
     private static class TransportChannelWrapper extends DelegatingTransportChannel {
 
         private final Task task;

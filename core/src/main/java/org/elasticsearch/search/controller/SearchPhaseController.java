@@ -353,7 +353,7 @@ public class SearchPhaseController extends AbstractComponent {
         for (AtomicArray.Entry<? extends FetchSearchResultProvider> entry : fetchResults) {
             entry.value.fetchResult().initCounter();
         }
-
+        // TODO 封装为InternalSearchHit返回
         // merge hits
         List<InternalSearchHit> hits = new ArrayList<>();
         if (!fetchResults.isEmpty()) {
@@ -366,7 +366,7 @@ public class SearchPhaseController extends AbstractComponent {
                 int index = fetchResult.counterGetAndIncrement();
                 if (index < fetchResult.hits().internalHits().length) {
                     InternalSearchHit searchHit = fetchResult.hits().internalHits()[index];
-                    searchHit.score(shardDoc.score);
+                    searchHit.score(shardDoc.score); // TODO 只设置分数和来源的分片
                     searchHit.shard(fetchResult.shardTarget());
 
                     if (sorted) {

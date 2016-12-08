@@ -98,6 +98,7 @@ class SearchQueryThenFetchAsyncAction extends AbstractSearchAsyncAction<QuerySea
                 result.shardTarget(shardTarget);
                 fetchResults.set(shardIndex, result);
                 if (counter.decrementAndGet() == 0) {
+                    // TODO 当第二阶段（Fetch）处理完后，调用onResponse方法时触发merge，合并结果返回给发送fetch请求的客户端
                     finishHim();
                 }
             }
@@ -136,6 +137,7 @@ class SearchQueryThenFetchAsyncAction extends AbstractSearchAsyncAction<QuerySea
                 if (request.scroll() != null) {
                     scrollId = TransportSearchHelper.buildScrollId(request.searchType(), firstResults, null);
                 }
+                // TODO 发送给发出search请求的node
                 listener.onResponse(new SearchResponse(internalResponse, scrollId, expectedSuccessfulOps,
                     successfulOps.get(), buildTookInMillis(), buildShardFailures()));
                 releaseIrrelevantSearchContexts(firstResults, docIdsToLoad);

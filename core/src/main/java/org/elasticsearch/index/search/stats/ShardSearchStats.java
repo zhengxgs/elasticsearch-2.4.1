@@ -97,7 +97,7 @@ public final class ShardSearchStats {
                 statsHolder.queryCurrent.dec();
             }
         }
-        slowLogSearchService.onQueryPhase(searchContext, tookInNanos);
+        slowLogSearchService.onQueryPhase(searchContext, tookInNanos); // TODO 处理慢日志
     }
 
     public void onPreFetchPhase(SearchContext searchContext) {

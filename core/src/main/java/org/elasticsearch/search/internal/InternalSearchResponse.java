@@ -48,14 +48,15 @@ public class InternalSearchResponse implements Streamable, ToXContent {
         return new InternalSearchResponse(InternalSearchHits.empty(), null, null, null, false, null);
     }
 
+    // TODO 结果集,里面包含了字段信息，评分等
     private InternalSearchHits hits;
-
+    // TODO agg结果集
     private InternalAggregations aggregations;
 
     private Suggest suggest;
 
     private InternalProfileShardResults profileResults;
-
+    // TODO 是否超时
     private boolean timedOut;
 
     private Boolean terminatedEarly = null;

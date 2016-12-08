@@ -42,7 +42,7 @@ import static org.elasticsearch.action.search.SearchType.QUERY_AND_FETCH;
 import static org.elasticsearch.action.search.SearchType.SCAN;
 
 /**
- *
+ * TODO 接受search请求处理
  */
 public class TransportSearchAction extends HandledTransportAction<SearchRequest, SearchResponse> {
 
@@ -60,6 +60,8 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
         this.searchPhaseController = searchPhaseController;
         this.searchService = searchService;
         this.clusterService = clusterService;
+
+        // TODO 优化单个shard的搜索请求，默认true
         this.optimizeSingleShard = this.settings.getAsBoolean("action.search.optimize_single_shard", true);
     }
 
@@ -70,6 +72,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
             try {
                 ClusterState clusterState = clusterService.state();
                 String[] concreteIndices = indexNameExpressionResolver.concreteIndices(clusterState, searchRequest);
+                // TODO 获取路由信息
                 Map<String, Set<String>> routingMap = indexNameExpressionResolver.resolveSearchRouting(clusterState, searchRequest.routing(), searchRequest.indices());
                 int shardCount = clusterService.operationRouting().searchShardsCount(clusterState, concreteIndices, routingMap);
                 if (shardCount == 1) {
@@ -83,6 +86,7 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
             }
         }
 
+        // TODO 根据不同的查询类型使用不同的Action进行处理
         AbstractSearchAsyncAction searchAsyncAction;
         switch(searchRequest.searchType()) {
             case DFS_QUERY_THEN_FETCH:

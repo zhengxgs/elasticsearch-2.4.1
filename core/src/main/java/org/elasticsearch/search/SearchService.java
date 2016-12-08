@@ -382,7 +382,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
             long time = System.nanoTime();
             contextProcessing(context);
 
-            loadOrExecuteQueryPhase(request, context, queryPhase);
+            loadOrExecuteQueryPhase(request, context, queryPhase); // TODO 真正执行处理的地方,将查询的结果放到SearchContext中
 
             if (context.queryResult().topDocs().scoreDocs.length == 0 && context.scrollContext() == null) {
                 freeContext(context.id());
@@ -477,6 +477,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
             shardSearchStats.onPreQueryPhase(context);
             long time = System.nanoTime();
             try {
+                // TODO QUERY_AND_FETCH类型会执行一次query操作
                 loadOrExecuteQueryPhase(request, context, queryPhase);
             } catch (Throwable e) {
                 shardSearchStats.onFailedQueryPhase(context);
@@ -591,6 +592,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
     }
 
     public FetchSearchResult executeFetchPhase(ShardFetchRequest request) {
+        // TODO 通过request的id查找context，因为之前query的时候创建过
         final SearchContext context = findContext(request.id());
         contextProcessing(context);
         final ShardSearchStats shardSearchStats = context.indexShard().searchService();
@@ -602,6 +604,7 @@ public class SearchService extends AbstractLifecycleComponent<SearchService> {
             context.docIdsToLoad(request.docIds(), 0, request.docIdsSize());
             shardSearchStats.onPreFetchPhase(context);
             long time = System.nanoTime();
+            // TODO 执行fetch处理
             fetchPhase.execute(context);
             if (fetchPhaseShouldFreeContext(context)) {
                 freeContext(request.id());

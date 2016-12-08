@@ -381,7 +381,7 @@ public class QueryPhase implements SearchPhase {
                     if (doProfile) {
                         searchContext.getProfilers().getCurrent().setCollector((InternalProfileCollector) collector);
                     }
-                    searcher.search(query, collector);
+                    searcher.search(query, collector); // TODO lucene查询,并将结果放到collector中
                 }
             } catch (TimeLimitingCollector.TimeExceededException e) {
                 assert timeoutSet : "TimeExceededException thrown even though timeout wasn't set";
