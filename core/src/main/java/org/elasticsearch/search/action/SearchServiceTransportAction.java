@@ -405,6 +405,7 @@ public class SearchServiceTransportAction extends AbstractComponent {
     class FetchByIdTransportHandler<Request extends ShardFetchRequest> extends TransportRequestHandler<Request> {
         @Override
         public void messageReceived(Request request, TransportChannel channel) throws Exception {
+            // TODO 获取ID
             FetchSearchResult result = searchService.executeFetchPhase(request);
             channel.sendResponse(result);
         }

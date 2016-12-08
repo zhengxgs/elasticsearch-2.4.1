@@ -166,6 +166,8 @@ abstract class AbstractSearchAsyncAction<FirstResult extends SearchPhaseResult> 
         // increment all the "future" shards to update the total ops since we some may work and some may not...
         // and when that happens, we break on total ops, so we must maintain them
         final int xTotalOps = totalOps.addAndGet(shardIt.remaining() + 1);
+
+        // TODO xTotalOps 当前执行了多少个shard，如果执行数量等于总共需要执行的数量就进入结果集合并阶段
         if (xTotalOps == expectedTotalOps) {
             try {
                 innerMoveToSecondPhase();

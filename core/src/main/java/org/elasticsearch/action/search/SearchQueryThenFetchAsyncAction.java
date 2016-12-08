@@ -81,6 +81,7 @@ class SearchQueryThenFetchAsyncAction extends AbstractSearchAsyncAction<QuerySea
             request, sortedShardList, firstResults.length()
         );
         final AtomicInteger counter = new AtomicInteger(docIdsToLoad.asList().size());
+        // TODO 第二阶段，获取到所有的docId后，根据shardTarget获取到nodeId然后进行fetch操作，获取文档信息
         for (AtomicArray.Entry<IntArrayList> entry : docIdsToLoad.asList()) {
             QuerySearchResultProvider queryResult = firstResults.get(entry.index);
             DiscoveryNode node = nodes.get(queryResult.shardTarget().nodeId());
