@@ -41,6 +41,11 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+/**
+ * 所以缓冲区控制
+ * 每30秒调用一次ShardsIndicesStatusChecker的run方法进行判断使用的内存大小是否小于min或大于max，然后udpate Buffer size，最后调用updateShardBuffers执行refresh操作
+ * 《也就是说refresh操作设置为-1时，也不会导致内存爆炸。》
+ */
 public class IndexingMemoryController extends AbstractLifecycleComponent<IndexingMemoryController> {
 
     /** How much heap (% or bytes) we will share across all actively indexing shards on this node (default: 10%). */

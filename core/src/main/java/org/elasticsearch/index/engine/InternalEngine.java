@@ -473,6 +473,7 @@ public class InternalEngine extends Engine {
 
     /**
      * Forces a refresh if the versionMap is using too much RAM
+     * TODO 如果versionMap使用太多内存时，强制执行refresh操作
      */
     private void checkVersionMapRefresh() {
         if (versionMap.ramBytesUsedForRefresh() > config().getVersionMapSize().bytes() && versionMapRefreshPending.getAndSet(true) ==
@@ -487,6 +488,7 @@ public class InternalEngine extends Engine {
                     @Override
                     public void run() {
                         try {
+                            // TODO 当versionMap使用太多内存也会执行refresh操作。防止内存满了
                             refresh("version_table_full");
                         } catch (EngineClosedException ex) {
                             // ignore
