@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Task Manager service for keeping track of currently running tasks on the nodes
+ *
+ * 任务管理器服务，用于跟踪节点上当前正在运行的任务
  */
 public class TaskManager extends AbstractComponent implements ClusterStateListener {
 

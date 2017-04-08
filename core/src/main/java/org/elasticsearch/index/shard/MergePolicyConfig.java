@@ -126,12 +126,16 @@ public final class MergePolicyConfig implements IndexSettingsService.Listener{
     public static final ByteSizeValue   DEFAULT_MAX_MERGED_SEGMENT          = new ByteSizeValue(5, ByteSizeUnit.GB);
     public static final double          DEFAULT_SEGMENTS_PER_TIER           = 10.0d;
     public static final double          DEFAULT_RECLAIM_DELETES_WEIGHT      = 2.0d;
+
+    // TODO 指定索引是否应该存储为压缩格式，默认false，如果为true，lucene将会把整个索引存储到一个文件中，该属性用于当系统出现文件句柄数量过多的错误时使用。但会降低索引和搜索的性能
     public static final String          INDEX_COMPOUND_FORMAT               = "index.compound_format";
 
+    // TODO 这个值表示被删除文档的比例，删除文档超过这个比例，超过比例的段将会合并
     // When expungeDeletes is called, we only merge away a segment if its delete percentage is over this threshold. Default is 10.
     public static final String INDEX_MERGE_POLICY_EXPUNGE_DELETES_ALLOWED = "index.merge.policy.expunge_deletes_allowed";
 
-    // TODO 小于这个大小的 segment，优先被归并，默认值是2MB
+    // TODO 小于这个大小的 segment，优先被归并，默认值是2MB （***有误***）
+    // TODO 这个属性用于阻止碎片段的频繁刷新，小于这个大小的segement将考虑被合并。
     // Segments smaller than this are "rounded up" to this size, i.e. treated as equal (floor) size for merge selection. This is to prevent frequent flushing of tiny segments, thus preventing a long tail in the index. Default is 2mb.
     public static final String INDEX_MERGE_POLICY_FLOOR_SEGMENT = "index.merge.policy.floor_segment";
 
@@ -147,8 +151,10 @@ public final class MergePolicyConfig implements IndexSettingsService.Listener{
     // Maximum sized segment to produce during normal merging (not explicit optimize). This setting is approximate:
     // the estimate of the merged segment size is made by summing sizes of to-be-merged segments (compensating for percent deleted docs). Default is 5gb.
     public static final String INDEX_MERGE_POLICY_MAX_MERGED_SEGMENT = "index.merge.policy.max_merged_segment";
+    // TODO 指定每层段的数量，较小的值带来更小的段，带来更多的合并操作，这个值太小会导致索引性能降低。  注意：这个值必须大于等于index.merge.policy.max_merge_at_once这个值,否则就会使合并次数过多引起性能问题
     // Sets the allowed number of segments per tier. Smaller values mean more merging but fewer segments. Default is 10. Note, this value needs to be >= than the max_merge_at_once otherwise you'll force too many merges to occur.
     public static final String INDEX_MERGE_POLICY_SEGMENTS_PER_TIER = "index.merge.policy.segments_per_tier";
+    // TODO 该属性值指定了删除文档在合并操作中的重要程度，如果设置为0，删除文档对合并段的选择没有影响，其值越高 表示删除文档在对 待合并段 的选择影响越大（看TieredMergePolicy源码中的reclaimDeletesWeight成员变量更容易理解）
     // Controls how aggressively merges that reclaim more deletions are favored. Higher values favor selecting merges that reclaim deletions. A value of 0.0 means deletions don't impact merge selection. Defaults to 2.0.
     public static final String INDEX_MERGE_POLICY_RECLAIM_DELETES_WEIGHT = "index.merge.policy.reclaim_deletes_weight";
     // TODO 是否开启merge，默认true
