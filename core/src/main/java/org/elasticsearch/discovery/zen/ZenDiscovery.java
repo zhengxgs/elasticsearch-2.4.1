@@ -113,9 +113,15 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
     private final ClusterName clusterName;
     private final DiscoverySettings discoverySettings;
     private final ZenPingService pingService;
+
+    /**
+     * 集群中其他节点ping主节点，
+     * 经过discovery.zen.fd.ping_retries次重试，均超时（discovery.zen.fd.ping_timeout），
+     * 则认为主节点“失联”，然后发起选举。选举的需要在discovery.zen.ping_timeout时间内完成
+     */
     /** 所有节点都会运行 */
     private final MasterFaultDetection masterFD;
-    /** 只在master节点上运行故障检测 */
+    /** 只在master节点上运行故障检测  <<检测脑裂>> */
     private final NodesFaultDetection nodesFD;
     private final PublishClusterStateAction publishClusterState;
     private final MembershipAction membership;
@@ -128,6 +134,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
     /** how long to wait before performing another join attempt after a join request failed with an retriable error */
     private final TimeValue joinRetryDelay;
 
+    /** 在本地主节点或别的主节点，强制重新加入前允许别的master可以ping多少次 */
     /** how many pings from *another* master to tolerate before forcing a rejoin on other or local master */
     private final int maxPingsFromAnotherMaster;
 
@@ -1173,6 +1180,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
         public void onPingReceived(final NodesFaultDetection.PingRequest pingRequest) {
             // if we are master, we don't expect any fault detection from another node. If we get it
             // means we potentially have two masters in the cluster.
+            // TODO 如果收到其他节点的故障检测，说明可能存在脑裂问题了。说明有2个master
             if (!localNodeMaster()) {
                 pingsWhileMaster.set(0);
                 return;
@@ -1187,11 +1195,13 @@ public class ZenDiscovery extends AbstractLifecycleComponent<Discovery> implemen
                 logger.trace("got a ping from another master {}. current ping count: [{}]", pingRequest.masterNode(), pingsWhileMaster.get());
                 return;
             }
+            // TODO 当超过允许的最大ping次数（maxPingsFromAnotherMaster）就开始处理哪个应该重新加入集群
             logger.debug("got a ping from another master {}. resolving who should rejoin. current ping count: [{}]", pingRequest.masterNode(), pingsWhileMaster.get());
             clusterService.submitStateUpdateTask("ping from another master", new ClusterStateUpdateTask(Priority.IMMEDIATE) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     pingsWhileMaster.set(0);
+                    // 怎么处理看handleAnotherMaster注释
                     return handleAnotherMaster(currentState, pingRequest.masterNode(), pingRequest.clusterStateVersion(), "node fd ping");
                 }
 
