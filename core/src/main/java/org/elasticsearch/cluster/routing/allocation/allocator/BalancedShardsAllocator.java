@@ -59,6 +59,8 @@ import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
  * <p>
  * These parameters are combined in a {@link WeightFunction} that allows calculation of node weights which
  * are used to re-balance shards based on global as well as per-index factors.
+ *
+ * BalancedShardsAllocator基于BalancedShardsAllocator.WeightFunction重新平衡集群中的节点分配。 集群平衡由可以在集群更新API中设置的四个参数定义，允许实时更改：
  */
 public class BalancedShardsAllocator extends AbstractComponent implements ShardsAllocator {
 

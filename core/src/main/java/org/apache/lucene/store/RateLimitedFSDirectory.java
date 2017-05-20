@@ -45,6 +45,7 @@ public final class RateLimitedFSDirectory extends FilterDirectory {
         if (type == StoreRateLimiting.Type.NONE || limiter == null) {
             return output;
         }
+        // merging 限速判断
         if (context.context == Context.MERGE || type == StoreRateLimiting.Type.ALL) {
             // we are merging, and type is either MERGE or ALL, rate limit...
             return new RateLimitedIndexOutput(new RateLimiterWrapper(limiter, rateListener), output);

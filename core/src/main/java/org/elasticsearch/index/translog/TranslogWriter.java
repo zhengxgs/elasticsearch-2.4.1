@@ -162,6 +162,7 @@ public class TranslogWriter extends TranslogReader {
                 throw e;
             }
             writtenOffset = writtenOffset + data.length();
+            // TODO 累次translog的操作次数 index.translog.flush_threshold_ops
             operationCounter++;;
         }
         return new Translog.Location(generation, position, data.length());

@@ -23,6 +23,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 /**
+ * 存储速率限制，分为3种：NONE不限速，MERGE限制merge的速率，ALL限制所有的速率
  */
 public class StoreRateLimiting {
 

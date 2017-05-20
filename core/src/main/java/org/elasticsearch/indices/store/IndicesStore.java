@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- *
+ *  Store
  */
 public class IndicesStore extends AbstractComponent implements ClusterStateListener, Closeable {
 
@@ -65,18 +65,23 @@ public class IndicesStore extends AbstractComponent implements ClusterStateListe
 
     private static final EnumSet<IndexShardState> ACTIVE_STATES = EnumSet.of(IndexShardState.STARTED, IndexShardState.RELOCATED);
 
+    /**
+     * 监听器子类，当有setting更新时触发applySetting对setting的refresh
+     */
     class ApplySettings implements NodeSettingsService.Listener {
+
         @Override
         public void onRefreshSettings(Settings settings) {
             String rateLimitingType = settings.get(INDICES_STORE_THROTTLE_TYPE, IndicesStore.this.rateLimitingType);
             // try and parse the type
+            // 比较indices.store.throttle.type的值是否有效，否则报错rate limiting type {rateLimitingType} not valid, can be one of [all|merge|none]
             StoreRateLimiting.Type.fromString(rateLimitingType);
             if (!rateLimitingType.equals(IndicesStore.this.rateLimitingType)) {
                 logger.info("updating indices.store.throttle.type from [{}] to [{}]", IndicesStore.this.rateLimitingType, rateLimitingType);
                 IndicesStore.this.rateLimitingType = rateLimitingType;
                 IndicesStore.this.rateLimiting.setType(rateLimitingType);
             }
-
+            // 判断每秒最大值是否需要更新
             ByteSizeValue rateLimitingThrottle = settings.getAsBytesSize(INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC, IndicesStore.this.rateLimitingThrottle);
             if (!rateLimitingThrottle.equals(IndicesStore.this.rateLimitingThrottle)) {
                 logger.info("updating indices.store.throttle.max_bytes_per_sec from [{}] to [{}], note, type is [{}]", IndicesStore.this.rateLimitingThrottle, rateLimitingThrottle, IndicesStore.this.rateLimitingType);
@@ -112,6 +117,7 @@ public class IndicesStore extends AbstractComponent implements ClusterStateListe
         transportService.registerRequestHandler(ACTION_SHARD_EXISTS, ShardActiveRequest.class, ThreadPool.Names.SAME, new ShardActiveRequestHandler());
 
         // we don't limit by default (we default to CMS's auto throttle instead):
+        // 默认没有限速，因为会自动限速
         this.rateLimitingType = settings.get("indices.store.throttle.type", StoreRateLimiting.Type.NONE.name());
         rateLimiting.setType(rateLimitingType);
         this.rateLimitingThrottle = settings.getAsBytesSize("indices.store.throttle.max_bytes_per_sec", new ByteSizeValue(10240, ByteSizeUnit.MB));
@@ -143,6 +149,12 @@ public class IndicesStore extends AbstractComponent implements ClusterStateListe
         clusterService.remove(this);
     }
 
+    /**
+     *
+     * TODO 触发集群状态变更时间时，判断当前节点的分片是否需要删除（重定向 或其他移动分片到其他节点）   ？？ 括号内是猜测，并未仔细查看代码
+     *
+     * @param event
+     */
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (!event.routingTableChanged()) {
@@ -168,6 +180,7 @@ public class IndicesStore extends AbstractComponent implements ClusterStateListe
 
     boolean shardCanBeDeleted(ClusterState state, IndexShardRoutingTable indexShardRoutingTable) {
         // a shard can be deleted if all its copies are active, and its not allocated on this node
+        // 如果所有副本都处于活动状态，并且未在此节点上分配，则可以删除该分片
         if (indexShardRoutingTable.size() == 0) {
             // should not really happen, there should always be at least 1 (primary) shard in a
             // shard replication group, in any case, protected from deleting something by mistake
@@ -183,6 +196,8 @@ public class IndicesStore extends AbstractComponent implements ClusterStateListe
             // if the allocated or relocation node id doesn't exists in the cluster state  it may be a stale node,
             // make sure we don't do anything with this until the routing table has properly been rerouted to reflect
             // the fact that the node does not exists
+
+            // 如果分配或重定位节点ID在群集状态中不存在，则它可能是陈旧的节点，确保我们不做任何事情，直到路由表被正确地重新路由以反映节点不存在的事实
             DiscoveryNode node = state.nodes().get(shardRouting.currentNodeId());
             if (node == null) {
                 return false;

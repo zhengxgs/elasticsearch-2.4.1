@@ -462,6 +462,8 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
     /**
      * Returns the number of operations in the transaction files that aren't committed to lucene..
      * Note: may return -1 if unknown
+     *
+     * TODO 返回未提交给lucene的事务文件中的操作数。注意：如果未知，可能会返回-1
      */
     public int totalOperations() {
         int ops = 0;

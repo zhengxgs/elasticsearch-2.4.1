@@ -50,8 +50,12 @@ public class TranslogService extends AbstractIndexShardComponent implements Clos
     // TODO translog flush时间控制，默认5s
     public static final String INDEX_TRANSLOG_FLUSH_INTERVAL = "index.translog.interval";
     // 当满足以下3个任意一个条件的时候，就执行flush，优先级如下面排序
+
+    // 当前shard的operations大于配置index.translog.flush_threshold_ops，默认为Integer.MAX_VALUE，即2^31-1；
     public static final String INDEX_TRANSLOG_FLUSH_THRESHOLD_OPS = "index.translog.flush_threshold_ops";
+    // 当前translog的size大于配置index.translog.flush_threshold_size，默认是512mb；
     public static final String INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE = "index.translog.flush_threshold_size";
+    // 距离上一次flush的时间间隔大于配置index.translog.flush_threshold_period，默认是30min；
     public static final String INDEX_TRANSLOG_FLUSH_THRESHOLD_PERIOD = "index.translog.flush_threshold_period";
 
     public static final String INDEX_TRANSLOG_DISABLE_FLUSH = "index.translog.disable_flush";
