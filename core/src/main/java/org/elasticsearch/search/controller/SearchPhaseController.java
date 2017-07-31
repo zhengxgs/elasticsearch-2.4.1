@@ -170,6 +170,7 @@ public class SearchPhaseController extends AbstractComponent {
             return EMPTY_DOCS;
         }
 
+        // TODO 判断是否优化从单个分片命中的hits
         if (optimizeSingleShard) {
             boolean canOptimize = false;
             QuerySearchResult result = null;

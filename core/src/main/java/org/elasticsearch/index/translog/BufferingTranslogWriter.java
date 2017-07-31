@@ -29,6 +29,11 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
+ *
+ *  (动态参数)是否将Translog写入到内存缓冲区，默认buffered
+ Translog首先写入内存中的64kB缓冲区，并且只有当缓冲区已满时或者当写入请求或sync_interval触发fsync时才会写入磁盘。
+ index.translog.fs.type: buffered实现类
+
  */
 public final class BufferingTranslogWriter extends TranslogWriter {
     private byte[] buffer;
@@ -50,6 +55,7 @@ public final class BufferingTranslogWriter extends TranslogWriter {
             ensureOpen();
             final long offset = totalOffset;
             if (data.length() >= buffer.length) {
+                // 使用index.translog.fs.type: buffered参数时，写入Translog会判断当前数据长度和buffer长度，然后进行flush清空buffer
                 flush();
                 // we use the channel to write, since on windows, writing to the RAF might not be reflected
                 // when reading through the channel

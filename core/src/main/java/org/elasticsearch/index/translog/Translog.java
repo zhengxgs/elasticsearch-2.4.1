@@ -1671,10 +1671,12 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
     public enum Durabilty {
         /**
          * Async durability - translogs are synced based on a time interval.
+         * 根据时间间隔同步translog。
          */
         ASYNC,
         /**
          * Request durability - translogs are synced for each high levle request (bulk, index, delete)
+         * （批量，索引，删除）都会同步translogs
          */
         REQUEST;
 

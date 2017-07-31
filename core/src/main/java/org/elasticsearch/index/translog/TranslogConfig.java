@@ -31,10 +31,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.nio.file.Path;
 
-/*
+/**
  * Holds all the configuration that is used to create a {@link Translog}.
  * Once {@link Translog} has been created with this object, changes to this
  * object will affect the {@link Translog} instance.
+ *
+ * 保存用于创建Translog的所有配置。 使用此对象创建Translog后，对该对象的更改将影响Translog实例。
  */
 public final class TranslogConfig {
 
@@ -44,11 +46,13 @@ public final class TranslogConfig {
     public static final String INDEX_TRANSLOG_FS_TYPE = "index.translog.fs.type";
     public static final String INDEX_TRANSLOG_BUFFER_SIZE = "index.translog.fs.buffer_size";
     // TODO 将translog同步到磁盘的间隔时间，默认5s
+    // 静态设置
     public static final String INDEX_TRANSLOG_SYNC_INTERVAL = "index.translog.sync_interval";
 
     private final TimeValue syncInterval;
     private final BigArrays bigArrays;
     private final ThreadPool threadPool;
+    // 是否每个操作后同步，根据INDEX_TRANSLOG_SYNC_INTERVAL是否大于0来判断
     private final boolean syncOnEachOperation;
     private volatile int bufferSize;
     private volatile TranslogGeneration translogGeneration;

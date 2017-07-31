@@ -1,16 +1,56 @@
 
 
+#调试参数
+node.enable_lucene_segment_infos_trace: true
+
+#http.enabled: false
+
 #集群名称
-cluster.name: elasticsearch-2.4-local
+cluster.name: elasticsearch-2.4
 #节点名称
-node.name: zhengxgs-7.238-local
+node.name: zhengxgs-7.238
+
+#当索引不存在的index的时候是否自动创建，默认true
+action.auto_create_index: true
+#是否是动态索引，默认true
+index.mapper.dynamic: true
+#是否自动生成ID
+action.bulk.action.allow_id_generation: true
+
+#合并的线程数，使用的是机械磁盘而非SSD的话设置为1最好
+#机械磁盘在并发 I/O 支持方面比较差，所以我们需要降低每个索引并发访问磁盘的线程数。这个设置允许 max_thread_count + 2 个线程同时进行磁盘操作，也就是设置为 1 允许三个线程
+#对于 SSD，可以忽略这个设置，默认是 Math.min(4, Runtime.getRuntime().availableProcessors() / 2) ，对 SSD 来说运行的很好。
+index.merge.scheduler.max_thread_count: 1
+
+#合并最大数 默认是 max_thread_count + 5个
+# index.merge.scheduler.max_merge_count: 4
+
+#是否自动限流 默认true
+index.merge.scheduler.auto_throttle: true
+
+#translog多久同步一次到磁盘，默认5s
+index.translog.sync_interval: 5s
 
 #是否可以选举为主节点，默认为true
 #node.master: false
 
+#所有breaker的父类设置，设置了这个值会覆盖所有的breaker其他设置，默认为JVM堆的70%
+indices.breaker.total.limit: 70%
+
+#字段数据缓存大小，默认为无界
+indices.fielddata.cache.size: 20%
+
+#字段断路器大小限制，默认JVM堆的60%
+indices.breaker.fielddata.limit: 65%
+
+#请求断路器大小限制，默认JVM堆的40%（限制在请求中计算聚合的内存超过设置大小）
+indices.breaker.request.limit: 40%
+
+
+
 #是否作为数据节点，默认为true
 #node.data: false
-
+# 本地开发模式，改为其他IP为生产模式
 network.host: 0.0.0.0
 
 #索引缓存引用类型，soft，当内存不足时jvm可回收掉
@@ -124,8 +164,9 @@ index.search.slowlog.threshold.query.debug: 1s
 #
 # discovery.zen.ping.unicast.hosts: ["host1", "host2"]
 
-# discovery.zen.ping.unicast.hosts: ["127.0.0.1", "172.16.2.248", "172.16.4.33"]
-discovery.zen.ping.unicast.hosts: ["172.16.7.238"]
+discovery.zen.ping.unicast.hosts: ["127.0.0.1", "172.16.2.248", "172.16.4.33"]
+#discovery.zen.ping.unicast.hosts: ["172.16.7.238"]
+# 选举超时时间
 discovery.zen.ping_timeout: 10s
 discovery.zen.minimum_master_nodes: 1
 
@@ -133,9 +174,10 @@ discovery.zen.minimum_master_nodes: 1
 discovery.zen.no_master_block: write
 
 # How often a node gets pinged. Defaults to 1s.
+# 故障检测间隔时间
 discovery.zen.fd.ping_interval: 5s
 
-#默认时间为ping_timeout的20倍
+# 默认时间为ping_timeout的20倍
 #discovery.zen.join_timeout: 120s
 
 #

@@ -55,6 +55,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * reflected in the routing table or in releated classes, replicas are
  * represented as {@link ShardRouting}.
  * </p>
+ *
+ * 索引路由表，路由表维护索引所有分片列表。
  */
 public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> implements Iterable<IndexShardRoutingTable> {
 

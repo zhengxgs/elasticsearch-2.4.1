@@ -2,11 +2,9 @@ package org.zhengxgs;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -15,15 +13,18 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.sort.SortOrder;
@@ -35,8 +36,8 @@ import org.junit.Test;
  */
 public class ElasticsearchClient {
 
-	public static final String CLUSTER_NAME = "elasticsearch-2.4-test";
-	public static final String HOST = "127.0.0.1";
+	public static final String CLUSTER_NAME = "elasticsearch-2.4";
+	public static final String HOST = "172.16.2.248";
 	public static final Integer PORT = 9300;
 
 	public static final String INDEX = "testindex";
@@ -69,6 +70,44 @@ public class ElasticsearchClient {
 
 		getClient().admin().indices().prepareCreate(INDEX).addMapping(TYPE, mapping).execute().actionGet();
 	}
+
+    @Test
+    public void test_index_mapping2() throws IOException {
+
+        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
+        xContentBuilder.startObject()
+            .field("number_of_shards", "1").field("number_of_replicas", "0");
+        xContentBuilder.startObject("analysis");
+        xContentBuilder.startObject("analyzer").startObject("my_ngram_analyzer").field("tokenizer","my_ngram_tokenizer").endObject().endObject();
+        xContentBuilder.startObject("tokenizer").startObject("my_ngram_tokenizer")
+                .field("type", "nGram")
+                .field("min_gram", "1")
+                .field("max_gram", "1")
+                .array("token_chars", "letter", "digit", "punctuation")
+            .endObject()
+        .endObject();
+        xContentBuilder.endObject();
+        xContentBuilder.endObject();
+
+        System.out.println(xContentBuilder.string());
+        getClient().admin().indices().prepareCreate("myindex1").setSettings(xContentBuilder.string()).get();
+
+//        "analysis" : {
+//            "analyzer" : {
+//                "my_ngram_analyzer" : {
+//                    "tokenizer" : "my_ngram_tokenizer"
+//                }
+//            },
+//            "tokenizer" : {
+//                "my_ngram_tokenizer" : {
+//                        "type" : "nGram",
+//                        "min_gram" : "1",
+//                        "max_gram" : "1",
+//                        "token_chars": [ "letter", "digit", "punctuation"]
+//                }
+//            }
+//        }
+    }
 
 	// @After
 	public void test_clear() {
@@ -156,7 +195,7 @@ public class ElasticsearchClient {
 	@Test
 	public void test_search_queryAll() {
 		SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch(INDEX).setTypes(TYPE);
-		searchRequestBuilder.setFrom(0).setSize(100);
+		searchRequestBuilder.setFrom(0).setSize(10);
 		searchRequestBuilder.setQuery(QueryBuilders.matchAllQuery());
 
 		SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
@@ -173,6 +212,7 @@ public class ElasticsearchClient {
 		System.out.println(deleteResponse.isFound());
 	}
 
+	// delete by query 插件
 	//	@Test
 	//	public void test_deleteByQuery() {
 	//		DeleteByQueryRequestBuilder sd = new DeleteByQueryRequestBuilder(getClient(), DeleteByQueryAction.INSTANCE);
@@ -287,5 +327,32 @@ public class ElasticsearchClient {
 			}
 		}
 	}
+
+    @Test
+	public void test_multi_match() {
+
+        MultiMatchQueryBuilder multiMatchQueryBuilder = QueryBuilders.multiMatchQuery("给伊拉克的是", "content");
+        multiMatchQueryBuilder.slop(0);
+        multiMatchQueryBuilder.maxExpansions(1);
+        multiMatchQueryBuilder.analyzer("my_ngram_analyzer");
+        multiMatchQueryBuilder.type(MultiMatchQueryBuilder.Type.PHRASE);
+
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        boolQueryBuilder.must(multiMatchQueryBuilder);
+
+        SearchRequestBuilder searchRequestBuilder = getClient().prepareSearch("fenci").setTypes("fulltext");
+        searchRequestBuilder.setFrom(0).setSize(100);
+        searchRequestBuilder.setQuery(boolQueryBuilder);
+
+        System.out.println(searchRequestBuilder);
+        SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
+        System.out.println(searchResponse);
+        SearchHits hits = searchResponse.getHits();
+        System.out.println("查询总数：" + hits.getHits().length);
+        for (SearchHit hit : hits) {
+            Map<String, Object> source = hit.getSource();
+            System.out.println(source);
+        }
+    }
 
 }

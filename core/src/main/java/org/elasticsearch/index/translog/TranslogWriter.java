@@ -40,6 +40,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+/**
+ * Translog写入方式不带缓存直接同步到磁盘的实现类
+ *
+ * index.translog.fs.type: simple实现类
+ */
 public class TranslogWriter extends TranslogReader {
 
     public static final String TRANSLOG_CODEC = "translog";
@@ -107,6 +112,9 @@ public class TranslogWriter extends TranslogReader {
         return tragedy;
     }
 
+    /**
+     * index.translog.fs.type类型，相关实现类
+     */
     public enum Type {
 
         SIMPLE() {

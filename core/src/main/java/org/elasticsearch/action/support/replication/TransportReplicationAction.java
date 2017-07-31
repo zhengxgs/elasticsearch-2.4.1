@@ -704,6 +704,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
             if (request.consistencyLevel() != WriteConsistencyLevel.DEFAULT) {
                 consistencyLevel = request.consistencyLevel();
             } else {
+                // 默认一致性：quorum
                 consistencyLevel = defaultWriteConsistencyLevel;
             }
             final int sizeActive;
@@ -1078,6 +1079,7 @@ public abstract class TransportReplicationAction<Request extends ReplicationRequ
             }
         }
         if (indexShard.getTranslogDurability() == Translog.Durabilty.REQUEST && location != null) {
+            // TODO 默认index.translog.durability: REQUEST每次都会同步写入translog
             indexShard.sync(location);
         }
     }

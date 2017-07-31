@@ -34,6 +34,7 @@ public final class Elasticsearch {
         try {
             // TODO zhengxgs 启动时，需要指定command=start
             // -Des.path.home=E:\桌面\git\elasticsearch-2.4.1\core
+            // Program arguments = start
             Bootstrap.init(args);
         } catch (Throwable t) {
             // format exceptions to the console in a special way

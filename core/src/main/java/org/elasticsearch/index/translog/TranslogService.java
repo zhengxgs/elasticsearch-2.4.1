@@ -48,6 +48,7 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
  */
 public class TranslogService extends AbstractIndexShardComponent implements Closeable {
     // TODO translog flush时间控制，默认5s
+    // TODO 控制多久检查一次是否需要刷新，检查内容：ops，size，period其中任意满足就触发flush操作，当然，还需要判断其他条件
     public static final String INDEX_TRANSLOG_FLUSH_INTERVAL = "index.translog.interval";
     // 当满足以下3个任意一个条件的时候，就执行flush，优先级如下面排序
 
