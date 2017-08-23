@@ -53,7 +53,7 @@ import java.util.concurrent.Callable;
 
 import static com.google.common.collect.Maps.filterEntries;
 import static com.google.common.collect.Maps.newHashMap;
-
+// TODO 索引名表达式解析器
 public class IndexNameExpressionResolver extends AbstractComponent {
 
     private final List<ExpressionResolver> expressionResolvers;

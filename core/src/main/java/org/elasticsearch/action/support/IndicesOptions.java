@@ -32,6 +32,10 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeSt
 /**
  * Controls how to deal with unavailable concrete indices (closed or missing), how wildcard expressions are expanded
  * to actual indices (all, closed or open indices) and how to deal with wildcard expressions that resolve to no indices.
+ *
+ *
+ * POST /fenc1/_refresh?ignore_unavailable=true&allow_no_indices=false
+ * 控制如何处理不可用的具体索引（已关闭或缺少），通配符表达式如何扩展为实际索引（全部封闭或打开索引）以及如何处理解析为无索引的通配符表达式。
  */
 public class IndicesOptions {
 
@@ -66,6 +70,7 @@ public class IndicesOptions {
 
     /**
      * @return Whether specified concrete indices should be ignored when unavailable (missing or closed)
+     * 忽略不存在或关闭的索引
      */
     public boolean ignoreUnavailable() {
         return (id & IGNORE_UNAVAILABLE) != 0;
@@ -76,12 +81,15 @@ public class IndicesOptions {
      *         The `_all` string or empty list of indices count as wildcard expressions too.
      *         Also when an alias points to a closed index this option decides if no concrete indices
      *         are allowed.
+     *
+     * 是否忽略通配符表达式解析为没有具体的索引。 `_all`字符串或空列表也称为通配符表达式。 此外，当别名指向封闭索引时，此选项决定是否不允许具体的索引。
      */
     public boolean allowNoIndices() {
         return (id & ALLOW_NO_INDICES) != 0;
     }
 
     /**
+     * open状态的索引扩展通配符表达式
      * @return Whether wildcard expressions should get expanded to open indices
      */
     public boolean expandWildcardsOpen() {
@@ -96,6 +104,7 @@ public class IndicesOptions {
     }
 
     /**
+     * 是否允许在closed状态的索引上执行
      * @return Whether execution on closed indices is allowed.
      */
     public boolean forbidClosedIndices() {
@@ -103,6 +112,7 @@ public class IndicesOptions {
     }
 
     /**
+     * 是否允许指向多个别名的索引
      * @return whether aliases pointing to multiple indices are allowed
      */
     public boolean allowAliasesToMultipleIndices() {

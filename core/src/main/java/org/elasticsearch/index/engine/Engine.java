@@ -79,7 +79,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- *
+ * 每一个Engine实例都是一个lucene
  */
 public abstract class Engine implements Closeable {
 
