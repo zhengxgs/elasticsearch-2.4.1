@@ -42,6 +42,7 @@ public class RestToXContentListener<Response extends ToXContent> extends RestRes
     }
 
     public final RestResponse buildResponse(Response response, XContentBuilder builder) throws Exception {
+        // TODO 处理human=true 和 filter_path 参数
         builder.startObject();
         response.toXContent(builder, channel.request());
         builder.endObject();

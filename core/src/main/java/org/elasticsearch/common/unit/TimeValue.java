@@ -196,6 +196,7 @@ public class TimeValue implements Streamable {
         return PeriodFormat.getDefault().withParseType(type).print(period);
     }
 
+    // TODO 时间计算，当前时间戳 - 时间戳 = 差值
     @Override
     public String toString() {
         if (duration < 0) {
